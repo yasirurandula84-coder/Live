@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 
-// ප්‍රොක්සි රූට් එක (වෙබ් සයිට් එකේ මැච් එක බලන්න)
+// ප්‍රොක්සි රූට් එක
 app.get('/proxy', async (req, res) => {
     let targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('Missing url');
@@ -50,6 +50,9 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
+// මෙතැනින් තමයි currentStream විචල්‍යය නිවැරදිව ඩික්ලේර් කරන්නේ
+let currentStream = null;
+
 // ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
@@ -59,15 +62,14 @@ app.post('/start-fb-live', (req, res) => {
         try { currentStream.kill('SIGKILL'); } catch (e) {}
     }
 
-    // අලුත් DASH ලින්ක් එක
+    // වෙබ් පේජ් එකේ (Shaka Player) වැඩ කළ Working DASH ලින්ක් එකම මෙයට ලබා දී ඇත
     const inputUrl = 'https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd';
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // ClearKey (Kid සහ Key) හරහා ඩික්‍රිප්ට් කරමින් FFmpeg එක මඟින් ෆේස්බුක් වෙත ස්ට්‍රීම් කිරීම
+    // FFmpeg මඟින් DRM ලින්ක් එක හැසිරවීම සඳහා අවශ්‍ය නිවැරදි ආදායම් විකල්ප (Input Options)
     currentStream = ffmpeg(inputUrl)
         .inputOptions([
             '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\r\n',
-            '-decryption_key', 'da58f6323d6388054bd316890f729f72', // මෙතැනට ඔයාගේ Key එක දී ඇත
             '-re',
             '-fflags +genpts'
         ])
@@ -81,7 +83,7 @@ app.post('/start-fb-live', (req, res) => {
         ])
         .output(fbRtmpUrl)
         .on('start', () => {
-            console.log('DRM Stream started to Facebook successfully!');
+            console.log('Stream process started successfully!');
         })
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
@@ -92,9 +94,8 @@ app.post('/start-fb-live', (req, res) => {
 
     currentStream.run();
 
-    res.send('Live stream started successfully from DRM source!');
+    res.send('Live stream started successfully!');
 });
-
 
 let activeViewers = 0;
 io.on('connection', (socket) => {
