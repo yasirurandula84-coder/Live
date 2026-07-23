@@ -23,7 +23,8 @@ app.post('/start-fb-live', (req, res) => {
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
     // Shaka packager එකෙන් ඩික්‍රිප්ට් කරලා, FFmpeg එක හරහා Facebook RTMP එකට යැවීම
-    const command = `packager input=${mpdUrl},stream=video,output=pipe:1 keys:kid=${keyId}:key=${decryptionKey} | ffmpeg -i pipe:0 -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
+        // වීඩියෝ සහ ඕඩියෝ දෙකම එකට Shaka Packager හරහා ඩික්‍රිප්ට් කර পাইප් එකට යැවීම
+    const command = `packager input=${mpdUrl},stream=video,output=pipe:1 input=${mpdUrl},stream=audio,output=pipe:1 keys:kid=${keyId}:key=${decryptionKey} | ffmpeg -i pipe:0 -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
 
     exec(command, (error, stdout, stderr) => {
         if (error) {
