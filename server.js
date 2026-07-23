@@ -25,11 +25,11 @@ app.post('/start-fb-live', (req, res) => {
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
     // Shaka Packager වෙනම </i> රන් කර, ඊටපස්සේ FFmpeg එකෙන් ස්ට්‍රීම් කිරීම
-    const packagerArgs = [
+        const packagerArgs = [
         `input=${mpdUrl},stream=video,output=video.ts`,
         `input=${mpdUrl},stream=audio,output=audio.ts`,
         '--enable_raw_key_decryption',
-        `--keys`, `kid=${keyId}:key=${decryptionKey}`
+        '--keys', `key_id=${keyId}:key=${decryptionKey}`
     ];
 
     console.log("Starting Shaka Packager...");
