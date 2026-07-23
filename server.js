@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,8 +12,6 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
-const { spawn } = require('child_process');
-
 
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
@@ -24,7 +22,7 @@ app.post('/start-fb-live', (req, res) => {
     const decryptionKey = "da58f6323d6388054bd316890f729f72";
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-        // Shaka Packager එකෙන් ලයිව් HLS (m3u8) අවුට්පුට් එකක් හැදීම
+    // Shaka Packager එකෙන් ලයිව් HLS (m3u8) අවුට්පුට් එකක් හැදීම
     const packagerArgs = [
         `input=${mpdUrl},stream=video,output=video_%d.ts`,
         `input=${mpdUrl},stream=audio,output=audio_%d.ts`,
@@ -74,10 +72,7 @@ app.post('/start-fb-live', (req, res) => {
     }, 8000);
 
     res.send('Live stream HLS pipeline started successfully!');
-
-        
-
-
+}); // මෙන්න මේ බ්‍රේස් එකෙන් රවුට් එක නිවැරදිව අවසාන කර ඇත
 
 let activeViewers = 0;
 io.on('connection', (socket) => {
