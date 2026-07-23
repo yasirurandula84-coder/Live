@@ -24,12 +24,13 @@ app.post('/start-fb-live', (req, res) => {
     const decryptionKey = "da58f6323d6388054bd316890f729f72";
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // Shaka Packager වෙනම </i> රන් කර, ඊටපස්සේ FFmpeg එකෙන් ස්ට්‍රීම් කිරීම
-        const packagerArgs = [
-        `input=${mpdUrl},stream=video,output=video.ts`,
-        `input=${mpdUrl},stream=audio,output=audio.ts`,
+        // Shaka Packager එකෙන් ලයිව් HLS (m3u8) අවුට්පුට් එකක් හැදීම
+    const packagerArgs = [
+        `input=${mpdUrl},stream=video,output=video_%d.ts`,
+        `input=${mpdUrl},stream=audio,output=audio_%d.ts`,
         '--enable_raw_key_decryption',
-        '--keys', `key_id=${keyId}:key=${decryptionKey}`
+        '--keys', `key_id=${keyId}:key=${decryptionKey}`,
+        '--hls_master_playlist_output', 'master.m3u8'
     ];
 
     console.log("Starting Shaka Packager...");
@@ -43,15 +44,10 @@ app.post('/start-fb-live', (req, res) => {
         console.error(`Packager Log: ${data}`);
     });
 
-    packagerProcess.on('close', (code) => {
-        console.log(`Packager process exited with code ${code}`);
-    });
-
-    // තත්පර 5 කින් පසු FFmpeg මඟින් ෆේස්බුක් වෙත ස්ට්‍රීම් කිරීම ආරම්භ කිරීම
+    // තත්පර 8 කින් පසු FFmpeg මඟින් m3u8 ප්ලේලිස්ට් එක ෆේස්බුක් වෙත ස්ට්‍රීම් කිරීම
     setTimeout(() => {
         const ffmpegArgs = [
-            '-i', 'video.ts',
-            '-i', 'audio.ts',
+            '-i', 'master.m3u8',
             '-c:v', 'libx264',
             '-c:a', 'aac',
             '-f', 'flv',
@@ -75,11 +71,11 @@ app.post('/start-fb-live', (req, res) => {
         ffmpegProcess.on('close', (code) => {
             console.log(`FFmpeg process exited with code ${code}`);
         });
-    }, 5000);
+    }, 8000);
 
-    res.send('Live stream pipeline started successfully!');
-});
+    res.send('Live stream HLS pipeline started successfully!');
 
+        
 
 
 
