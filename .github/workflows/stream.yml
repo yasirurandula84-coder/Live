@@ -27,11 +27,15 @@ jobs:
 
       - name: Start Decrypted Stream to Facebook
         run: |
+          # Shaka Packager මඟින් DRM Encrypted DASH ලින්ක් එක ඩික්‍රිප්ට් කර ෆයිල් ලෙස ලබා ගැනීම
           ./packager \
-            'in=https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd,stream=video,output=-' \
-            'in=https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd,stream=audio,output=-' \
-            --keys kid=fe6dc83d53e08c5626b6aec2bb4a3afe:key=da58f6323d6388054bd316890f729f72 \
-          | ffmpeg -re -i - \
+            'in=https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd,stream=video,output=video.mp4' \
+            'in=https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd,stream=audio,output=audio.m4a' \
+            --keys kid=fe6dc83d53e08c5626b6aec2bb4a3afe:key=da58f6323d6388054bd316890f729f72 &
+          
+          # තත්පර 5 ක් ඉඳලා FFmpeg හරහා ෆේස්බුක් ලයිව් වෙත යැවීම
+          sleep 5
+          ffmpeg -re -i video.mp4 -i audio.m4a \
             -c:v libx264 -preset ultrafast -tune zerolatency \
             -c:a aac -b:a 128k \
             -f flv \
