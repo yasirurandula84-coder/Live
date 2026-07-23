@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start FB Live</title>
+    <style>
+        body { background: #0f172a; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #1e293b; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #0f172a; border: 1px solid #475569; color: #fff; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #0369a1; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Start Server FB Live</h2>
+        <form action="/start-fb-live" method="POST">
+            <label>Facebook Stream Key:</label>
+            <input type="text" name="streamKey" placeholder="Paste your Facebook Stream Key here" required>
+            <button type="submit">Start Live from Server</button>
+        </form>
+    </div>
+</body>
+</html>
