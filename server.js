@@ -23,7 +23,8 @@ app.post('/start-fb-live', (req, res) => {
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
     // mp4decrypt සහ ffmpeg එකතු කර ස්ට්‍රීම් කිරීම
-    const command = `ffmpeg -headers "User-Agent: Mozilla/5.0" -i ${mpdUrl} -c copy -f mp4 pipe:1 | mp4decrypt --key ${decryptionKey} - - | ffmpeg -i pipe:0 -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
+        // Shaka Packager එකෙන් DASH ලයිව් එක ඩිකෝඩ් කර, FFmpeg හරහා Facebook යැවීම
+    const command = `packager input=${mpdUrl},stream=video,output=pipe:1 keys:kid=fe6dc83d53e08c5626b6aec2bb4a3afe:key=da58f6323d6388054bd316890f729f72 | ffmpeg -i pipe:0 -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
 
     const ffmpegProcess = spawn(command, { shell: true });
 
