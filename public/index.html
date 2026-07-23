@@ -3,32 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Cricket Streaming</title>
-    <!-- Clappr Player -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@clappr/player@latest/dist/clappr.min.js"></script>
+    <title>Live Match Broadcasting</title>
+    <!-- HLS.js library for browser playback -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        body { background-color: #0b0f19; color: white; font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; }
-        h2 { color: #38bdf8; margin-bottom: 20px; }
-        #player-container { width: 100%; max-width: 900px; margin: 0 auto; }
-        .video-box { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #000; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        .video-box div { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        body {
+            background-color: #0b0f19;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            color: #38bdf8;
+            font-size: 26px;
+            margin: 0;
+        }
+        .header p {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .player-container {
+            width: 100%;
+            max-width: 900px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+            aspect-ratio: 16/9;
+        }
     </style>
 </head>
 <body>
 
-    <h2>Live Match Broadcasting</h2>
-    <div id="player-container">
-        <div class="video-box" id="player"></div>
+    <div class="header">
+        <h1>Live Cricket Streaming</h1>
+        <p>Watch live matches smoothly</p>
+    </div>
+
+    <div class="player-container">
+        <video id="video" controls autoplay></video>
     </div>
 
     <script>
-        var player = new Clappr.Player({
-            source: "https://dai-fancode.pages.dev/mumbai/4246723_english_hls_315eea1bdd6419_1ta-di_h264/index.m3u8",
-            autoPlay: true,
-            height: '100%',
-            width: '100%',
-            mute: false
-        });
+        // Telegram එකෙන් ලැබුණු M3U8 ලින්ක් එක (User-Agent කොටස හැර ප්‍රධාන ලින්ක් එක පමණක් මෙතැනට දෙන්න)
+        const rawUrl = "https://dai-fancode.pages.dev/mumbai/4246723_english_hls_315eea1bdd6419_1ta-di_h264/index.m3u8";
+        
+        // අපේ සර්වර් ප්‍රොක්සි එක හරහා ලින්ක් එක යැවීම
+        const proxyUrl = '/proxy?url=' + encodeURIComponent(rawUrl);
+
+        var video = document.getElementById('video');
+        
+        if (Hls.isSupported()) {
+            var hls = new Hls();
+            hls.loadSource(proxyUrl);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                video.play().catch(e => console.log("Auto-play prevented:", e));
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = proxyUrl;
+            video.addEventListener('loadedmetadata', function() {
+                video.play().catch(e => console.log("Auto-play prevented:", e));
+            });
+        }
     </script>
 
 </body>
