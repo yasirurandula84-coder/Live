@@ -50,50 +50,41 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
-let currentStream = null;
-
 // ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     if (!streamKey) return res.status(400).send('Stream Key required');
 
-    // දැනටමත් ස්ට්‍රීම් එකක් දුවනවා නම් එය නවතා අලුතින් පටන් ගනී
-    if (currentStream) {
-        try { currentStream.kill('SIGKILL'); } catch (e) {}
-    }
-
     const inputUrl = "https://d36r8jifhgsk5j.cloudfront.net/Willow_TV1080p.m3u8";
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // Zero-CPU Load සහ Auto-reconnect පහසුකම් සහිත FFmpeg සෙටප් එක
-    currentStream = ffmpeg(inputUrl)
-        .inputOptions([
-            '-re',                    // රියල්-ටයිම් ස්පීඩ් එකට රීඩ් කිරීම
-            '-fflags +genpts'         // පීටීඑස් (PTS) එරර් මඟහරවා ගැනීමට
-        ])
+    // සර්වර් එකෙන්ම FFmpeg හරහා ෆේස්බුක් එකට ස්ට්‍රීම් කිරීම
+    ffmpeg(inputUrl)
+        .videoCodec('libx264')
+        .audioCodec('aac')
+        .format('flv')
         .outputOptions([
-            '-c:v copy',              // වීඩියෝ එක කන්වර්ට් නොකර ඩිරෙක්ට් කොපි කරයි (සර්වර් එකට බරක් නැත)
-            '-c:a aac',               // ඕඩියෝ එක AAC ෆෝමැට් එකට තබා ගනී
-            '-f flv',
-            '-reconnect 1',           // ලින්ක් එකේ සිග්නල් අවුලක් ගියොත් ඔටෝ කනෙක්ෂන් ලබා දෙයි
-            '-reconnect_streamed 1',
-            '-reconnect_delay_max 5',
-            '-timeout 10000000'
+            '-preset ultrafast',
+            '-tune zerolatency',
+            '-b:v 1500k',
+            '-maxrate 1500k',
+            '-bufsize 3000k',
+            '-pix_fmt yuv420p',
+            '-g 60'
         ])
         .output(fbRtmpUrl)
-        .on('start', (commandLine) => {
-            console.log('Server started streaming to Facebook successfully!');
+        .on('start', () => {
+            console.log('Server started streaming to Facebook!');
         })
         .on('error', (err) => {
-            console.error('Streaming error / Reconnecting:', err.message);
+            console.error('Streaming error:', err.message);
         })
         .on('end', () => {
             console.log('Streaming finished.');
-        });
+        })
+        .run();
 
-    currentStream.run();
-
-    res.send('Live stream started successfully with high stability! You can close this page.');
+    res.send('Live stream started from server successfully! You can close this page now.');
 });
 
 let activeViewers = 0;
