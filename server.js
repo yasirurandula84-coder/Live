@@ -44,6 +44,7 @@ app.post('/start-fb-live', (req, res) => {
     });
 
     // තත්පර 8 කින් පසු FFmpeg මඟින් m3u8 ප්ලේලිස්ට් එක ෆේස්බුක් වෙත ස්ට්‍රීම් කිරීම
+        // තත්පර 15 කින් පසු FFmpeg මඟින් m3u8 ප්ලේලිස්ට් එක ෆේස්බුක් වෙත ස්ට්‍රීම් කිරීම
     setTimeout(() => {
         const ffmpegArgs = [
             '-i', 'master.m3u8',
@@ -70,7 +71,8 @@ app.post('/start-fb-live', (req, res) => {
         ffmpegProcess.on('close', (code) => {
             console.log(`FFmpeg process exited with code ${code}`);
         });
-    }, 8000);
+    }, 15000); // තත්පර 15 ක් දක්වා කාලය වැඩි කර ඇත
+
 
     res.send('Live stream HLS pipeline started successfully!');
 }); // මෙන්න මේ බ්‍රේස් එකෙන් රවුට් එක නිවැරදිව අවසාන කර ඇත
