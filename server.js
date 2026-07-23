@@ -41,7 +41,7 @@ app.post('/start-fb-live', (req, res) => {
     res.send('Direct live stream pipeline started!');
 });
 
-එකෙන් රවුට් එක නිවැරදිව අවසාන කර ඇත
+//එකෙන් රවුට් එක නිවැරදිව අවසාන කර ඇත
 
 let activeViewers = 0;
 io.on('connection', (socket) => {
