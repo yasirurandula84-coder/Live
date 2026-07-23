@@ -25,14 +25,19 @@ jobs:
           curl -L https://github.com/shaka-project/shaka-packager/releases/download/v2.6.1/packager-linux-x64 -o packager
           chmod +x packager
 
-      - name: Start Live Stream to Facebook via Pipe
+      - name: Start Live Stream to Facebook
         run: |
+          # Shaka Packager මඟින් .ts (Transport Stream) ෆෝමැට් එකට ඩික්‍රිප්ට් කර ලබා ගැනීම
           ./packager \
-            'in=https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd,stream=video,output=pipe:1' \
-            'in=https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd,stream=audio,output=pipe:2' \
-            --keys kid=fe6dc83d53e08c5626b6aec2bb4a3afe:key=da58f6323d6388054bd316890f729f72 \
-          | ffmpeg -re \
-            -i pipe:1 \
+            'in=https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd,stream=video,output=stream.ts' \
+            'in=https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd,stream=audio,output=audio.ts' \
+            --keys kid=fe6dc83d53e08c5626b6aec2bb4a3afe:key=da58f6323d6388054bd316890f729f72 &
+          
+          # තත්පර 6ක් ඉඳලා FFmpeg හරහා ෆේස්බුක් වෙත යැවීම
+          sleep 6
+          ffmpeg -re -i stream.ts -i audio.ts \
             -c:v libx264 -preset ultrafast -tune zerolatency \
+            -c:a aac -b:a 128k \
             -f flv \
             "rtmps://live-api-s.facebook.com:443/rtmp/${{ github.event.inputs.stream_key }}"
+
