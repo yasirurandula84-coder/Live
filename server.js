@@ -14,25 +14,35 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 const { spawn } = require('child_process');
 
+const { spawn } = require('child_process');
+
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     if (!streamKey) return res.status(400).send('Stream Key required');
 
     const mpdUrl = "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd";
+    const keyId = "fe6dc83d53e08c5626b6aec2bb4a3afe";
     const decryptionKey = "da58f6323d6388054bd316890f729f72";
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // mp4decrypt සහ ffmpeg එකතු කර ස්ට්‍රීම් කිරීම
-        // Shaka Packager එකෙන් DASH ලයිව් එක ඩිකෝඩ් කර, FFmpeg හරහා Facebook යැවීම
-    const command = `packager input=${mpdUrl},stream=video,output=pipe:1 keys:kid=fe6dc83d53e08c5626b6aec2bb4a3afe:key=da58f6323d6388054bd316890f729f72 | ffmpeg -i pipe:0 -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
+    // Shaka Packager එක හරහා ඩික්‍රිප්ට් කර, FFmpeg එකෙන් ස්ට්‍රීම් කිරීම
+    const shellCommand = `packager input=${mpdUrl},stream=video,output=video.ts input=${mpdUrl},stream=audio,output=audio.ts keys:kid=${keyId}:key=${decryptionKey} & sleep 5 && ffmpeg -i video.ts -i audio.ts -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
 
-    const ffmpegProcess = spawn(command, { shell: true });
+    const liveProcess = spawn(shellCommand, { shell: true });
 
-    ffmpegProcess.stderr.on('data', (data) => {
+    liveProcess.stdout.on('data', (data) => {
+        console.log(`stdout: ${data}`);
+    });
+
+    liveProcess.stderr.on('data', (data) => {
         console.error(`Log: ${data}`);
     });
 
-    res.send('Live stream started with mp4decrypt!');
+    liveProcess.on('close', (code) => {
+        console.log(`Process exited with code ${code}`);
+    });
+
+    res.send('Live stream process started via file chunking!');
 });
 
 
