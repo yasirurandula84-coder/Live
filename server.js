@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
+
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     if (!streamKey) return res.status(400).send('Stream Key required');
@@ -20,25 +21,25 @@ app.post('/start-fb-live', (req, res) => {
     const decryptionKey = "da58f6323d6388054bd316890f729f72";
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // FFmpeg එකෙන්ම ඩිරෙක්ට් ලින්ක් එක අරන් ස්ට්‍රීම් කිරීම
-    const directCommand = `ffmpeg -headers "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -i "${mpdUrl}" -decryption_key ${decryptionKey} -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 "${fbRtmpUrl}"`;
+    // Bento4 mp4decrypt සහ FFmpeg පයිප් කිරීම
+    const pipelineCommand = `mp4decrypt --key 1:${decryptionKey} "${mpdUrl}" - | ffmpeg -i - -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 "${fbRtmpUrl}"`;
 
-    console.log("Starting Direct FFmpeg Stream...");
-    const liveProcess = spawn(directCommand, { shell: true });
+    console.log("Starting Bento4 + FFmpeg Pipeline...");
+    const liveProcess = spawn(pipelineCommand, { shell: true });
 
     liveProcess.stdout.on('data', (data) => {
         console.log(`stdout: ${data}`);
     });
 
     liveProcess.stderr.on('data', (data) => {
-        console.error(`FFmpeg Log: ${data}`);
+        console.error(`Log: ${data}`);
     });
 
     liveProcess.on('close', (code) => {
         console.log(`Process exited with code ${code}`);
     });
 
-    res.send('Direct live stream pipeline started!');
+    res.send('Pipeline started using Bento4 & FFmpeg!');
 });
 
 //එකෙන් රවුට් එක නිවැරදිව අවසාන කර ඇත
