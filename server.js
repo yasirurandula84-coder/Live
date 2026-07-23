@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 
-// ප්‍රොක්සි රූට් එක (වෙබ් සයිට් එකේ මැච් එක බලන්න)
+// ප්‍රොක්සි රූට් එක
 app.get('/proxy', async (req, res) => {
     let targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('Missing url');
@@ -50,15 +50,13 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
-// සර්වර් එකේ ස්ට්‍රීම් එක මැనేජ් කරන්න currentStream විචල්‍යය මෙතැනින් ඩික්ලේර් කර ඇත
 let currentStream = null;
 
-// ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
+// ෆේස්බුක් එකට ලයිව් දෙන රූට් එක (ClearKey ඩික්‍රිප්ෂන් සමඟ)
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     if (!streamKey) return res.status(400).send('Stream Key required');
 
-    // දැනටමත් ස්ට්‍රීම් එකක් දුවනවා නම් එය නවතා දමයි
     if (currentStream) {
         try { currentStream.kill('SIGKILL'); } catch (e) {}
     }
@@ -66,11 +64,12 @@ app.post('/start-fb-live', (req, res) => {
     const inputUrl = 'https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd';
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // FFmpeg එක හරහා ෆේස්බුක් වෙත ස්ට්‍රීම් කිරීම
+    // FFmpeg මඟින් ඩීක්‍රිප්ට් කර ෆේස්බුක් වෙත යැවීම
     currentStream = ffmpeg()
         .input(inputUrl)
         .inputOptions([
             '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\r\n',
+            '-decryption_key', 'da58f6323d6388054bd316890f729f72', // මෙහි ඔබගේ නිවැරදි Key එක ඇතුළත් කර ඇත
             '-re'
         ])
         .outputOptions([
@@ -84,10 +83,10 @@ app.post('/start-fb-live', (req, res) => {
         ])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
-            console.log('FFmpeg process started successfully with command:', commandLine);
+            console.log('DRM Stream started successfully:', commandLine);
         })
         .on('error', (err) => {
-            console.error('FFmpeg Streaming error:', err.message);
+            console.error('Streaming error:', err.message);
         })
         .on('end', () => {
             console.log('Streaming finished.');
