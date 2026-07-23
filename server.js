@@ -26,7 +26,7 @@ app.post('/start-fb-live', (req, res) => {
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
     // Shaka Packager එක හරහා ඩික්‍රිප්ට් කර, FFmpeg එකෙන් ස්ට්‍රීම් කිරීම
-        const shellCommand = `packager input=${mpdUrl},stream=video,output=video.ts input=${mpdUrl},stream=audio,output=audio.ts --enable_raw_key_decryption --keys kid=${keyId}:key=${decryptionKey} & sleep 5 && ffmpeg -i video.ts -i audio.ts -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
+            const shellCommand = `packager input=${mpdUrl},stream=video,output=video.ts input=${mpdUrl},stream=audio,output=audio.ts --enable_raw_key_decryption --keys "kid=${keyId}:key=${decryptionKey}" & sleep 5 && ffmpeg -i video.ts -i audio.ts -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
 
     const liveProcess = spawn(shellCommand, { shell: true });
 
