@@ -1,6 +1,5 @@
 const express = require('express');
 const path = require('path');
-const fetch = require('node-fetch');
 const http = require('http');
 const { Server } = require('socket.io');
 const ffmpeg = require('fluent-ffmpeg');
@@ -14,87 +13,50 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 
-// ප්‍රොක්සි රූට් එක
-app.get('/proxy', async (req, res) => {
-    let targetUrl = req.query.url;
-    if (!targetUrl) return res.status(400).send('Missing url');
-
-    try {
-        if (!targetUrl.startsWith('http')) {
-            targetUrl = 'https://d36r8jifhgsk5j.cloudfront.net/' + targetUrl;
-        }
-        const response = await fetch(targetUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': 'https://www.fancode.com/',
-                'X-Forwarded-For': '198.51.100.15'
-            }
-        });
-        response.headers.forEach((v, n) => res.setHeader(n, v));
-        res.status(response.status);
-
-        if (targetUrl.endsWith('.m3u8')) {
-            const text = await response.text();
-            const rewritten = text.split('\n').map(line => {
-                line = line.trim();
-                if (line && !line.startsWith('#')) {
-                    return `/proxy?url=${encodeURIComponent(line)}`;
-                }
-                return line;
-            }).join('\n');
-            return res.send(rewritten);
-        }
-        response.body.pipe(res);
-    } catch (err) {
-        res.status(500).send('Proxy error');
-    }
-});
-
-// ස්ට්‍රීම් එක මැනේජ් කිරීමට currentStream විචල්‍යය මෙතැනින් ඩික්ලේර් කර ඇත
-let currentStream = null;
-
-// ෆේස්බුක් එකට ලයිව් දෙන රූට් එක
+// DASH (MPD) ස්ට්‍රීම් එක සර්වර් එකෙන් ඩික්‍රිප්ට් කර ෆේස්බුක් එකට යැවීම
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     if (!streamKey) return res.status(400).send('Stream Key required');
 
-    if (currentStream) {
-        try { currentStream.kill('SIGKILL'); } catch (e) {}
-    }
-
-    const inputUrl = 'https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd';
+    // ඔබ දුන් නව DASH ලින්ක් එක, Key සහ KID
+    const mpdUrl = "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd";
+    const keyId = "fe6dc83d53e08c5626b6aec2bb4a3afe";
+    const decryptionKey = "da58f6323d6388054bd316890f729f72";
+    
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // FFmpeg එක හරහා ඩිරෙක්ට් ලින්ක් එක සහ කී එක හරියටම මැච් කර යැවීම
-    currentStream = ffmpeg()
-        .input(inputUrl)
+    // FFmpeg හරහා Decryption සහ Streaming එක එකවර සිදුකිරීම
+    ffmpeg()
+        .input(mpdUrl)
         .inputOptions([
-            '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\r\n',
-            '-decryption_key', 'da58f6323d6388054bd316890f729f72',
-            '-re'
+            `-decryption_key ${decryptionKey}`,
+            '-user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"'
         ])
+        .videoCodec('libx264')
+        .audioCodec('aac')
+        .format('flv')
         .outputOptions([
-            '-c:v libx264',  // ෆේස්බුක් එකට හරියටම මැච් වෙන්න වීඩියෝ එක රී-එන්කෝඩ් කිරීම
             '-preset ultrafast',
-            '-c:a aac',
-            '-b:a 128k',
-            '-f flv',
-            '-flvflags no_duration_filesize'
+            '-tune zerolatency',
+            '-b:v 1500k',
+            '-maxrate 1500k',
+            '-bufsize 3000k',
+            '-pix_fmt yuv420p',
+            '-g 60'
         ])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
-            console.log('Direct Stream started:', commandLine);
+            console.log('Started streaming encrypted DASH to Facebook:', commandLine);
         })
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
         })
         .on('end', () => {
             console.log('Streaming finished.');
-        });
+        })
+        .run();
 
-    currentStream.run();
-
-    res.send('Live stream started successfully!');
+    res.send('Encrypted Live stream started from server successfully! You can close this page now.');
 });
 
 let activeViewers = 0;
