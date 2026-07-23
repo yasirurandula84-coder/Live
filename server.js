@@ -13,20 +13,20 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 
-// DASH (MPD) ස්ට්‍රීම් එක සර්වර් එකෙන් ඩික්‍රිප්ට් කර ෆේස්බුක් එකට යැවීම
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     if (!streamKey) return res.status(400).send('Stream Key required');
 
-    const mpdUrl = "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd";
-    const decryptionKey = "da58f6323d6388054bd316890f729f72";
+    // මෙතැනදී අපි ප්‍රොක්සි ලින්ක් එක හෝ ඩික්‍රිප්ට් කරන ක්‍රමය පාවිච්චි කරමු
+    // හැබැයි පුළුවන් නම් මේ DASH මැච් එක වෙනුවට සාමාන්‍ය .m3u8 (HLS) ලින්ක් එකක් පාවිච්චි කිරීම වැඩේ ගොඩක් ලේසි කරයි.
+    
+    // උදාහරණයක් ලෙස කලින් පාවිච්චි කළ HLS ලින්ක් එක මෙතැනට දෙමු:
+    const normalStreamUrl = "https://d36r8jifhgsk5j.cloudfront.net/Willow_TV1080p.m3u8";
     
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    ffmpeg()
-        .input(mpdUrl)
+    ffmpeg(normalStreamUrl)
         .inputOptions([
-            `-decryption_key ${decryptionKey}`,
             '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\r\n'
         ])
         .videoCodec('libx264')
@@ -43,7 +43,7 @@ app.post('/start-fb-live', (req, res) => {
         ])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
-            console.log('Started streaming encrypted DASH to Facebook:', commandLine);
+            console.log('Started streaming to Facebook:', commandLine);
         })
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
@@ -53,9 +53,8 @@ app.post('/start-fb-live', (req, res) => {
         })
         .run();
 
-    res.send('Encrypted Live stream started from server successfully! You can close this page now.');
+    res.send('Live stream started from server successfully! You can close this page now.');
 });
-
 
 let activeViewers = 0;
 io.on('connection', (socket) => {
