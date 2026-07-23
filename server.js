@@ -23,13 +23,14 @@ app.post('/start-fb-live', (req, res) => {
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
     // Shaka Packager එකෙන් ලයිව් HLS (m3u8) අවුට්පුට් එකක් හැදීම
-    const packagerArgs = [
-        `input=${mpdUrl},stream=video,output=video_%d.ts`,
-        `input=${mpdUrl},stream=audio,output=audio_%d.ts`,
+        const packagerArgs = [
+        `input=${mpdUrl},stream=video,segment_template=video_$Number$.ts,playlist_name=video.m3u8`,
+        `input=${mpdUrl},stream=audio,segment_template=audio_$Number$.ts,playlist_name=audio.m3u8`,
         '--enable_raw_key_decryption',
         '--keys', `key_id=${keyId}:key=${decryptionKey}`,
         '--hls_master_playlist_output', 'master.m3u8'
     ];
+
 
     console.log("Starting Shaka Packager...");
     const packagerProcess = spawn('packager', packagerArgs);
