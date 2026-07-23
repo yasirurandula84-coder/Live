@@ -1,0 +1,33 @@
+name: FB Live Streamer
+
+on:
+  workflow_dispatch:
+    inputs:
+      stream_key:
+        description: 'Facebook Stream Key'
+        required: true
+        type: string
+
+jobs:
+  start-stream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Start FFmpeg Stream
+        run: |
+          ffmpeg \
+            -headers "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\r\n" \
+            -decryption_key "da58f6323d6388054bd316890f729f72" \
+            -re \
+            -i "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd" \
+            -c:v libx264 -preset ultrafast -tune zerolatency \
+            -c:a aac -b:a 128k \
+            -f flv \
+            "rtmps://live-api-s.facebook.com:443/rtmp/${{ github.event.inputs.stream_key }}"
