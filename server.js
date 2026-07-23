@@ -50,9 +50,10 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
+// ස්ට්‍රීම් එක මැනේජ් කිරීමට currentStream විචල්‍යය මෙතැනින් ඩික්ලේර් කර ඇත
 let currentStream = null;
 
-// ෆේස්බුක් එකට ලයිව් දෙන රූට් එක (ClearKey ඩික්‍රිප්ෂන් සමඟ)
+// ෆේස්බුක් එකට ලයිව් දෙන රූට් එක
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     if (!streamKey) return res.status(400).send('Stream Key required');
@@ -64,26 +65,24 @@ app.post('/start-fb-live', (req, res) => {
     const inputUrl = 'https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd';
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // FFmpeg මඟින් ඩීක්‍රිප්ට් කර ෆේස්බුක් වෙත යැවීම
     currentStream = ffmpeg()
         .input(inputUrl)
         .inputOptions([
             '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\r\n',
-            '-decryption_key', 'da58f6323d6388054bd316890f729f72', // මෙහි ඔබගේ නිවැරදි Key එක ඇතුළත් කර ඇත
+            '-decryption_key', 'da58f6323d6388054bd316890f729f72',
             '-re'
         ])
         .outputOptions([
             '-c:v copy',
             '-c:a aac',
             '-f flv',
-            '-fflags +nobuffer',
             '-reconnect 1',
             '-reconnect_streamed 1',
             '-reconnect_delay_max 5'
         ])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
-            console.log('DRM Stream started successfully:', commandLine);
+            console.log('FFmpeg started with:', commandLine);
         })
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
