@@ -84,6 +84,22 @@
             border-top: none;
             font-size: 14px;
             color: #94a3b8;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .quality-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .quality-selector select {
+            background: #0f172a;
+            color: #38bdf8;
+            border: 1px solid #334155;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
         }
         .viewers-count {
             display: flex;
@@ -111,34 +127,52 @@
     </div>
 
     <div class="info-bar">
-        <div>Quality: <strong>1080p Full HD</strong></div>
+        <div class="quality-selector">
+            <span>⚙️ Quality:</span>
+            <select id="qualitySelect">
+                <option value="-1">Auto (Adaptive)</option>
+            </select>
+        </div>
         <div class="viewers-count">
-            👁️ Real-time Viewers: <span id="viewers">0</span>
+            👁️ Viewers: <span id="viewers">0</span>
         </div>
     </div>
 
     <script>
         const socket = io();
-
-        // සැබෑ ඔන්ලයින් ගණන සර්වර් එකෙන් ලබා ගැනීම
         socket.on('updateViewers', (count) => {
             document.getElementById('viewers').innerText = count;
         });
 
-        // පිරිසිදු 1080p ඩිරෙක්ට් ලින්ක් එක
         const streamUrl = "https://d36r8jifhgsk5j.cloudfront.net/Willow_TV1080p.m3u8";
-
         var video = document.getElementById('video');
-        
+        var qualitySelect = document.getElementById('qualitySelect');
+
         if (Hls.isSupported()) {
             var hls = new Hls();
             hls.loadSource(streamUrl);
             hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+
+            hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
                 video.play().catch(e => console.log("Auto-play prevented:", e));
+                
+                // ලින්ක් එකේ වෙනස් කොලිටි මට්ටම් (Levels) තියෙනවා නම් ඒවා ඩ්‍රොප්ඩවුන් එකට එකතු කිරීම
+                qualitySelect.innerHTML = '<option value="-1">Auto (Adaptive)</option>';
+                data.levels.forEach((level, index) => {
+                    var resolution = level.height ? level.height + 'p' : 'Quality ' + (index + 1);
+                    var option = document.createElement('option');
+                    option.value = index;
+                    option.text = resolution;
+                    qualitySelect.appendChild(option);
+                });
             });
+
+            // ඩ්‍රොප්ඩවුන් එකෙන් කොලිටි එක වෙනස් කළ විට ක්‍රියාත්මක වීම
+            qualitySelect.addEventListener('change', function(event) {
+                hls.currentLevel = parseInt(event.target.value);
+            });
+
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Safari හෝ iPhone වැනි බිල්ට්-ඉන් ප්ලේයර් සඳහා
             video.src = streamUrl;
             video.addEventListener('loadedmetadata', function() {
                 video.play().catch(e => console.log("Auto-play prevented:", e));
