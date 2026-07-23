@@ -65,6 +65,7 @@ app.post('/start-fb-live', (req, res) => {
     const inputUrl = 'https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd';
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
+    // FFmpeg එක හරහා ඩිරෙක්ට් ලින්ක් එක සහ කී එක හරියටම මැච් කර යැවීම
     currentStream = ffmpeg()
         .input(inputUrl)
         .inputOptions([
@@ -73,16 +74,16 @@ app.post('/start-fb-live', (req, res) => {
             '-re'
         ])
         .outputOptions([
-            '-c:v copy',
+            '-c:v libx264',  // ෆේස්බුක් එකට හරියටම මැච් වෙන්න වීඩියෝ එක රී-එන්කෝඩ් කිරීම
+            '-preset ultrafast',
             '-c:a aac',
+            '-b:a 128k',
             '-f flv',
-            '-reconnect 1',
-            '-reconnect_streamed 1',
-            '-reconnect_delay_max 5'
+            '-flvflags no_duration_filesize'
         ])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
-            console.log('FFmpeg started with:', commandLine);
+            console.log('Direct Stream started:', commandLine);
         })
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
