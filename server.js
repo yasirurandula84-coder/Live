@@ -3,6 +3,7 @@ const path = require('path');
 const fetch = require('node-fetch');
 const http = require('http');
 const { Server } = require('socket.io');
+const ffmpeg = require('fluent-ffmpeg');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,65 +12,85 @@ const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.urlencoded({ extended: true }));
 
-// Geo-block එක බයිපාස් කිරීමට ප්‍රොක්සි රූට් එක
+// ප්‍රොක්සි රූට් එක (වෙබ් සයිට් එකේ මැච් එක බලන්න)
 app.get('/proxy', async (req, res) => {
     let targetUrl = req.query.url;
-    if (!targetUrl) {
-        return res.status(400).send('Missing url parameter');
-    }
+    if (!targetUrl) return res.status(400).send('Missing url');
 
     try {
-        // ලින්ක් එක සාපේක්ෂව (Relative) ආවොත් ප්‍රධාන ඩොමේන් එක සමඟ සම්බන්ධ කිරීම
         if (!targetUrl.startsWith('http')) {
             targetUrl = 'https://d36r8jifhgsk5j.cloudfront.net/' + targetUrl;
         }
-
         const response = await fetch(targetUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
                 'Referer': 'https://www.fancode.com/',
-                'Origin': 'https://www.fancode.com/',
-                // US IP එකකින් රෙක්වෙස්ට් එක යන බව පෙන්වීමට ව්‍යාජ IP හැඩයක් ලබා දීම
                 'X-Forwarded-For': '198.51.100.15'
             }
         });
-
-        // හෙඩර්ස් ස්වීප් කිරීම
-        response.headers.forEach((value, name) => {
-            res.setHeader(name, value);
-        });
-
+        response.headers.forEach((v, n) => res.setHeader(n, v));
         res.status(response.status);
 
-        // m3u8 ෆයිල් එකක් නම්, ඇතුළේ තියෙන ලින්ක්ස් ප්‍රොක්සි හරහා යන්න මඟපෙන්වීම (Rewrite)
         if (targetUrl.endsWith('.m3u8')) {
             const text = await response.text();
-            const rewrittenText = text.split('\n').map(line => {
+            const rewritten = text.split('\n').map(line => {
                 line = line.trim();
                 if (line && !line.startsWith('#')) {
-                    // සෙග්මන්ට් ලින්ක්ස් ප්‍රොක්සි ලින්ක් එකට හරවා යැවීම
                     return `/proxy?url=${encodeURIComponent(line)}`;
                 }
                 return line;
             }).join('\n');
-            return res.send(rewrittenText);
+            return res.send(rewritten);
         }
-
         response.body.pipe(res);
     } catch (err) {
-        console.error('Proxy error:', err);
-        res.status(500).send('Proxy error: ' + err.message);
+        res.status(500).send('Proxy error');
     }
 });
 
-// සැබෑ ඔන්ලයින් නරඹන්නන් ගණන ට්‍රැක් කිරීම
-let activeViewers = 0;
+// ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
+app.post('/start-fb-live', (req, res) => {
+    const streamKey = req.body.streamKey;
+    if (!streamKey) return res.status(400).send('Stream Key required');
 
+    const inputUrl = "https://d36r8jifhgsk5j.cloudfront.net/Willow_TV1080p.m3u8";
+    const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
+
+    // සර්වර් එකෙන්ම FFmpeg හරහා ෆේස්බුක් එකට ස්ට්‍රීම් කිරීම
+    ffmpeg(inputUrl)
+        .videoCodec('libx264')
+        .audioCodec('aac')
+        .format('flv')
+        .outputOptions([
+            '-preset ultrafast',
+            '-tune zerolatency',
+            '-b:v 1500k',
+            '-maxrate 1500k',
+            '-bufsize 3000k',
+            '-pix_fmt yuv420p',
+            '-g 60'
+        ])
+        .output(fbRtmpUrl)
+        .on('start', () => {
+            console.log('Server started streaming to Facebook!');
+        })
+        .on('error', (err) => {
+            console.error('Streaming error:', err.message);
+        })
+        .on('end', () => {
+            console.log('Streaming finished.');
+        })
+        .run();
+
+    res.send('Live stream started from server successfully! You can close this page now.');
+});
+
+let activeViewers = 0;
 io.on('connection', (socket) => {
     activeViewers++;
     io.emit('updateViewers', activeViewers);
-
     socket.on('disconnect', () => {
         activeViewers = Math.max(0, activeViewers - 1);
         io.emit('updateViewers', activeViewers);
