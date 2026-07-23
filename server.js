@@ -15,7 +15,6 @@ app.use(express.urlencoded({ extended: true }));
 const { spawn } = require('child_process');
 
 
-
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     if (!streamKey) return res.status(400).send('Stream Key required');
@@ -25,25 +24,63 @@ app.post('/start-fb-live', (req, res) => {
     const decryptionKey = "da58f6323d6388054bd316890f729f72";
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // Shaka Packager එක හරහා ඩික්‍රිප්ට් කර, FFmpeg එකෙන් ස්ට්‍රීම් කිරීම
-            const shellCommand = `packager input=${mpdUrl},stream=video,output=video.ts input=${mpdUrl},stream=audio,output=audio.ts --enable_raw_key_decryption --keys "kid=${keyId}:key=${decryptionKey}" & sleep 5 && ffmpeg -i video.ts -i audio.ts -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
+    // Shaka Packager වෙනම </i> රන් කර, ඊටපස්සේ FFmpeg එකෙන් ස්ට්‍රීම් කිරීම
+    const packagerArgs = [
+        `input=${mpdUrl},stream=video,output=video.ts`,
+        `input=${mpdUrl},stream=audio,output=audio.ts`,
+        '--enable_raw_key_decryption',
+        `--keys`, `kid=${keyId}:key=${decryptionKey}`
+    ];
 
-    const liveProcess = spawn(shellCommand, { shell: true });
+    console.log("Starting Shaka Packager...");
+    const packagerProcess = spawn('packager', packagerArgs);
 
-    liveProcess.stdout.on('data', (data) => {
-        console.log(`stdout: ${data}`);
+    packagerProcess.stdout.on('data', (data) => {
+        console.log(`Packager stdout: ${data}`);
     });
 
-    liveProcess.stderr.on('data', (data) => {
-        console.error(`Log: ${data}`);
+    packagerProcess.stderr.on('data', (data) => {
+        console.error(`Packager Log: ${data}`);
     });
 
-    liveProcess.on('close', (code) => {
-        console.log(`Process exited with code ${code}`);
+    packagerProcess.on('close', (code) => {
+        console.log(`Packager process exited with code ${code}`);
     });
 
-    res.send('Live stream process started via file chunking!');
+    // තත්පර 5 කින් පසු FFmpeg මඟින් ෆේස්බුක් වෙත ස්ට්‍රීම් කිරීම ආරම්භ කිරීම
+    setTimeout(() => {
+        const ffmpegArgs = [
+            '-i', 'video.ts',
+            '-i', 'audio.ts',
+            '-c:v', 'libx264',
+            '-c:a', 'aac',
+            '-f', 'flv',
+            '-preset', 'ultrafast',
+            '-tune', 'zerolatency',
+            '-b:v', '1500k',
+            '-maxrate', '1500k',
+            '-bufsize', '3000k',
+            '-pix_fmt', 'yuv420p',
+            '-g', '60',
+            fbRtmpUrl
+        ];
+
+        console.log("Starting FFmpeg Stream to Facebook...");
+        const ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
+
+        ffmpegProcess.stderr.on('data', (data) => {
+            console.error(`FFmpeg Log: ${data}`);
+        });
+
+        ffmpegProcess.on('close', (code) => {
+            console.log(`FFmpeg process exited with code ${code}`);
+        });
+    }, 5000);
+
+    res.send('Live stream pipeline started successfully!');
 });
+
+
 
 
 let activeViewers = 0;
