@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DASH DRM Test Player</title>
+    <!-- Shaka Player CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
+    <style>
+        body { background: #0f172a; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
+        video { width: 100%; max-width: 800px; border-radius: 8px; background: #000; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h2>DASH DRM Stream Test</h2>
+    <video id="video" controls autoplay></video>
+
+    <script>
+        const manifestUri = 'https://otte.cache.aiv-cdn.net/bom-nitro/live/clients/dash/enc/tll6uwepxa/out/v1/a7f67cbb33df46539312956427343886/cenc.mpd';
+        
+        // Kid සහ Key එක (Hex ෆෝමැට් එකෙන්)
+        const keyId = '290e09c837da78d5cd961978d390515c';
+        const key = 'b748836c71e6a4ca68ef5b5652db6247';
+
+        async function initApp() {
+            // Shaka Player ලෝඩ් වීම තහවුරු කිරීම
+            shaka.polyfill.installAll();
+            if (!shaka.Player.isBrowserSupported()) {
+                console.error('Browser not supported!');
+                return;
+            }
+
+            const video = document.getElementById('video');
+            const player = new shaka.Player(video);
+
+            // DRM Configuration (ClearKey හරහා ඩික්‍රිප්ට් කිරීම)
+            player.configure({
+                drm: {
+                    clearKeys: {
+                        [keyId]: key
+                    }
+                },
+                streaming: {
+                    // ෆේස්බුක් හෝ වෙබ් සයිට් ප්‍රොක්සි වලට අවශ්‍ය User-Agent එක සැකසීම
+                    extraHttpHeaders: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36'
+                    }
+                }
+            });
+
+            try {
+                await player.load(manifestUri);
+                console.log('The video has now been loaded successfully!');
+            } catch (e) {
+                console.error('Error code', e.code, 'object', e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
