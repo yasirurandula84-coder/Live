@@ -55,37 +55,46 @@ app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     if (!streamKey) return res.status(400).send('Stream Key required');
 
-    const inputUrl = "https://d36r8jifhgsk5j.cloudfront.net/Willow_TV1080p.m3u8";
+    if (currentStream) {
+        try { currentStream.kill('SIGKILL'); } catch (e) {}
+    }
+
+    // අලුත් DASH ලින්ක් එක
+    const inputUrl = 'https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd';
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // සර්වර් එකෙන්ම FFmpeg හරහා ෆේස්බුක් එකට ස්ට්‍රීම් කිරීම
-    ffmpeg(inputUrl)
-        .videoCodec('libx264')
-        .audioCodec('aac')
-        .format('flv')
+    // ClearKey (Kid සහ Key) හරහා ඩික්‍රිප්ට් කරමින් FFmpeg එක මඟින් ෆේස්බුක් වෙත ස්ට්‍රීම් කිරීම
+    currentStream = ffmpeg(inputUrl)
+        .inputOptions([
+            '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\r\n',
+            '-decryption_key', 'da58f6323d6388054bd316890f729f72', // මෙතැනට ඔයාගේ Key එක දී ඇත
+            '-re',
+            '-fflags +genpts'
+        ])
         .outputOptions([
-            '-preset ultrafast',
-            '-tune zerolatency',
-            '-b:v 1500k',
-            '-maxrate 1500k',
-            '-bufsize 3000k',
-            '-pix_fmt yuv420p',
-            '-g 60'
+            '-c:v copy',
+            '-c:a aac',
+            '-f flv',
+            '-reconnect 1',
+            '-reconnect_streamed 1',
+            '-reconnect_delay_max 5'
         ])
         .output(fbRtmpUrl)
         .on('start', () => {
-            console.log('Server started streaming to Facebook!');
+            console.log('DRM Stream started to Facebook successfully!');
         })
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
         })
         .on('end', () => {
             console.log('Streaming finished.');
-        })
-        .run();
+        });
 
-    res.send('Live stream started from server successfully! You can close this page now.');
+    currentStream.run();
+
+    res.send('Live stream started successfully from DRM source!');
 });
+
 
 let activeViewers = 0;
 io.on('connection', (socket) => {
