@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
-const ffmpeg = require('fluent-ffmpeg');
+const { exec } = require('child_process');
 
 const app = express();
 const server = http.createServer(app);
@@ -22,23 +22,19 @@ app.post('/start-fb-live', (req, res) => {
     const decryptionKey = "da58f6323d6388054bd316890f729f72";
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // Shaka Packager සහ FFmpeg එකතු කර ඩික්‍රිප්ට් කර ස්ට්‍රීම් කිරීම
-    const command = `packager input=${mpdUrl},stream=video,output=pipe:1 keys:kid=${keyId}:key=${decryptionKey} | ffmpeg -i pipe:0 -i ${mpdUrl} -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
+    // Shaka packager එකෙන් ඩික්‍රිප්ට් කරලා, FFmpeg එක හරහා Facebook RTMP එකට යැවීම
+    const command = `packager input=${mpdUrl},stream=video,output=pipe:1 keys:kid=${keyId}:key=${decryptionKey} | ffmpeg -i pipe:0 -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
 
-    const { exec } = require('child_process');
-    const child = exec(command, (error, stdout, stderr) => {
+    exec(command, (error, stdout, stderr) => {
         if (error) {
-            console.error(`exec error: ${error}`);
+            console.error(`Streaming error: ${error.message}`);
             return;
         }
-        console.log(`stdout: ${stdout}`);
-        console.error(`stderr: ${stderr}`);
+        console.log('Stream ended successfully');
     });
 
-    console.log('Started Shaka Packager & FFmpeg stream to Facebook');
-    res.send('Live stream started via Shaka Packager successfully!');
+    res.send('Live stream started by converting MPD to RTMP successfully!');
 });
-
 
 let activeViewers = 0;
 io.on('connection', (socket) => {
