@@ -18,42 +18,27 @@ app.post('/start-fb-live', (req, res) => {
     if (!streamKey) return res.status(400).send('Stream Key required');
 
     const mpdUrl = "https://otte.cache.aiv-cdn.net/iad-nitro/live/clients/dash/enc/jpjzsonseg/out/v1/26eeb47cccd24e2d8e1975655a1f04e9/cenc.mpd";
+    const keyId = "fe6dc83d53e08c5626b6aec2bb4a3afe";
     const decryptionKey = "da58f6323d6388054bd316890f729f72";
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    // Docker එකේ ඉන්ස්ටෝල් වන FFmpeg එක මඟින් DASH සහ Decryption හසුරුවයි
-    ffmpeg()
-        .input(mpdUrl)
-        .inputOptions([
-            `-decryption_key ${decryptionKey}`,
-            '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36\r\n'
-        ])
-        .videoCodec('libx264')
-        .audioCodec('aac')
-        .format('flv')
-        .outputOptions([
-            '-preset ultrafast',
-            '-tune zerolatency',
-            '-b:v 1500k',
-            '-maxrate 1500k',
-            '-bufsize 3000k',
-            '-pix_fmt yuv420p',
-            '-g 60'
-        ])
-        .output(fbRtmpUrl)
-        .on('start', (commandLine) => {
-            console.log('Started streaming Docker DASH to Facebook:', commandLine);
-        })
-        .on('error', (err) => {
-            console.error('Streaming error:', err.message);
-        })
-        .on('end', () => {
-            console.log('Streaming finished.');
-        })
-        .run();
+    // Shaka Packager සහ FFmpeg එකතු කර ඩික්‍රිප්ට් කර ස්ට්‍රීම් කිරීම
+    const command = `packager input=${mpdUrl},stream=video,output=pipe:1 keys:kid=${keyId}:key=${decryptionKey} | ffmpeg -i pipe:0 -i ${mpdUrl} -c:v libx264 -c:a aac -f flv -preset ultrafast -tune zerolatency -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 ${fbRtmpUrl}`;
 
-    res.send('Docker Live stream started from server successfully! You can close this page now.');
+    const { exec } = require('child_process');
+    const child = exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`exec error: ${error}`);
+            return;
+        }
+        console.log(`stdout: ${stdout}`);
+        console.error(`stderr: ${stderr}`);
+    });
+
+    console.log('Started Shaka Packager & FFmpeg stream to Facebook');
+    res.send('Live stream started via Shaka Packager successfully!');
 });
+
 
 let activeViewers = 0;
 io.on('connection', (socket) => {
