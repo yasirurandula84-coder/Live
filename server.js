@@ -1,66 +1,116 @@
 const express = require('express');
-const { spawn } = require('child_process');
 const path = require('path');
+const fetch = require('node-fetch');
+const http = require('http');
+const { Server } = require('socket.io');
+const ffmpeg = require('fluent-ffmpeg');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
 const PORT = process.env.PORT || 3000;
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json()); // JSON data handle කිරීමට
 
 let activeStreamProcess = null;
 
-// Facebook Live පටන් ගන්න API Route එක
+// ප්‍රොක්සි රූට් එක (වෙබ් සයිට් එකේ මැච් එක බලන්න)
+app.get('/proxy', async (req, res) => {
+    let targetUrl = req.query.url;
+    if (!targetUrl) return res.status(400).send('Missing url');
+
+    try {
+        const response = await fetch(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': 'https://www.fancode.com/'
+            }
+        });
+        response.headers.forEach((v, n) => res.setHeader(n, v));
+        res.status(response.status);
+
+        if (targetUrl.endsWith('.m3u8')) {
+            const text = await response.text();
+            const rewritten = text.split('\n').map(line => {
+                line = line.trim();
+                if (line && !line.startsWith('#')) {
+                    // Relative හෝ Absolute URL හැන්ඩ්ල් කිරීම
+                    let absoluteUrl = line;
+                    if (!line.startsWith('http')) {
+                        const urlObj = new URL(targetUrl);
+                        absoluteUrl = `${urlObj.origin}${line.startsWith('/') ? '' : '/'}${line}`;
+                    }
+                    return `/proxy?url=${encodeURIComponent(absoluteUrl)}`;
+                }
+                return line;
+            }).join('\n');
+            return res.send(rewritten);
+        }
+        response.body.pipe(res);
+    } catch (err) {
+        res.status(500).send('Proxy error');
+    }
+});
+
+// ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-fb-live', (req, res) => {
     const { streamKey, streamUrl } = req.body;
-
-    if (!streamKey || !streamUrl) {
-        return res.status(400).send('Stream Key and Stream URL are required!');
-    }
+    
+    if (!streamKey) return res.status(400).send({ status: 'error', message: 'Stream Key required' });
+    if (!streamUrl) return res.status(400).send({ status: 'error', message: 'Stream URL required' });
 
     if (activeStreamProcess) {
-        return res.status(400).send('A stream is already running! Stop it first.');
+        return res.status(400).send({ status: 'error', message: 'A stream is already running!' });
     }
 
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    console.log("Starting FFmpeg stream to Facebook...");
-    console.log("Source:", streamUrl);
+    console.log('Starting streaming to Facebook from URL:', streamUrl);
 
-    // FFmpeg හරහා m3u8 ලින්ක් එක ග්‍රැබ් කර Facebook වෙත යැවීම
-    const ffmpegArgs = [
-        '-re',
-        '-i', streamUrl,
-        '-c:v', 'copy', // කොඩිං වෙනස් නොකර වේගයෙන් යැවීමට (သို့မဟုတ် libx264 පාවිච්චි කළ හැක)
-        '-c:a', 'aac',
-        '-b:a', '128k',
-        '-f', 'flv',
-        fbRtmpUrl
-    ];
+    // fluent-ffmpeg මඟින් ලයිව් ස්ට්‍රීම් එක යැවීම
+    const command = ffmpeg(streamUrl)
+        .videoCodec('libx264')
+        .audioCodec('aac')
+        .format('flv')
+        .outputOptions([
+            '-preset ultrafast',
+            '-tune zerolatency',
+            '-b:v 1500k',
+            '-maxrate 1500k',
+            '-bufsize 3000k',
+            '-pix_fmt yuv420p',
+            '-g 60'
+        ])
+        .output(fbRtmpUrl)
+        .on('start', (commandLine) => {
+            console.log('FFmpeg spawned with command:', commandLine);
+        })
+        .on('error', (err) => {
+            console.error('Streaming error:', err.message);
+            activeStreamProcess = null;
+        })
+        .on('end', () => {
+            console.log('Streaming finished.');
+            activeStreamProcess = null;
+        });
 
-    activeStreamProcess = spawn('ffmpeg', ffmpegArgs);
+    command.run();
+    activeStreamProcess = command;
 
-    activeStreamProcess.stdout.on('data', (data) => {
-        console.log(`FFmpeg stdout: ${data}`);
-    });
-
-    activeStreamProcess.stderr.on('data', (data) => {
-        console.error(`FFmpeg log: ${data}`);
-    });
-
-    activeStreamProcess.on('close', (code) => {
-        console.log(`FFmpeg process exited with code ${code}`);
-        activeStreamProcess = null;
-    });
-
-    res.send({ status: 'success', message: 'Facebook Live stream started successfully!' });
+    res.send({ status: 'success', message: 'Live stream started from server successfully!' });
 });
 
-// Stream එක නවත්වන්න API Route එක
+// ස්ට්‍රීම් එක නැවැත්වීමට රූට් එකක්
 app.post('/stop-fb-live', (req, res) => {
     if (activeStreamProcess) {
-        activeStreamProcess.kill('SIGKILL');
+        try {
+            activeStreamProcess.kill('SIGKILL');
+        } catch (e) {
+            console.log("Error killing process:", e);
+        }
         activeStreamProcess = null;
         console.log("Stream stopped by user.");
         return res.send({ status: 'success', message: 'Stream stopped successfully.' });
@@ -68,6 +118,16 @@ app.post('/stop-fb-live', (req, res) => {
     res.status(400).send({ status: 'error', message: 'No active stream running.' });
 });
 
-app.listen(PORT, () => {
+let activeViewers = 0;
+io.on('connection', (socket) => {
+    activeViewers++;
+    io.emit('updateViewers', activeViewers);
+    socket.on('disconnect', () => {
+        activeViewers = Math.max(0, activeViewers - 1);
+        io.emit('updateViewers', activeViewers);
+    });
+});
+
+server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
