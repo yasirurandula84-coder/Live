@@ -12,12 +12,12 @@ const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json()); // JSON data handle කිරීමට
+app.use(express.urlencoded({ extended: true })); // HTML form data (URL-encoded) කියවා ගැනීමට
+app.use(express.json());
 
 let activeStreamProcess = null;
 
-// ප්‍රොක්සි රූට් එක (වෙබ් සයිට් එකේ මැච් එක බලන්න)
+// ප්‍රොක්සි රූට් එක
 app.get('/proxy', async (req, res) => {
     let targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('Missing url');
@@ -37,7 +37,6 @@ app.get('/proxy', async (req, res) => {
             const rewritten = text.split('\n').map(line => {
                 line = line.trim();
                 if (line && !line.startsWith('#')) {
-                    // Relative හෝ Absolute URL හැන්ඩ්ල් කිරීම
                     let absoluteUrl = line;
                     if (!line.startsWith('http')) {
                         const urlObj = new URL(targetUrl);
@@ -55,22 +54,25 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
-// ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
+// ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක (HTML Form POST හැන්ඩ්ල් කිරීම)
 app.post('/start-fb-live', (req, res) => {
-    const { streamKey, streamUrl } = req.body;
+    const streamKey = req.body.streamKey;
     
-    if (!streamKey) return res.status(400).send({ status: 'error', message: 'Stream Key required' });
-    if (!streamUrl) return res.status(400).send({ status: 'error', message: 'Stream URL required' });
+    // ඔයා දෙන්න ඕන `.m3u8` ලින්ක් එක මෙතැනට දාලා තියෙනවා (ඉන්පුට් එකේ නැතත් මෙතැනින් ඔටෝ ඇදගන්නවා)
+    const streamUrl = "https://tvsen7.aynascope.net/rEBp38Ax/index.m3u8";
+
+    if (!streamKey) {
+        return res.status(400).send('Stream Key required!');
+    }
 
     if (activeStreamProcess) {
-        return res.status(400).send({ status: 'error', message: 'A stream is already running!' });
+        return res.status(400).send('A stream is already running! Stop it first.');
     }
 
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
     console.log('Starting streaming to Facebook from URL:', streamUrl);
 
-    // fluent-ffmpeg මඟින් ලයිව් ස්ට්‍රීම් එක යැවීම
     const command = ffmpeg(streamUrl)
         .videoCodec('libx264')
         .audioCodec('aac')
@@ -86,7 +88,7 @@ app.post('/start-fb-live', (req, res) => {
         ])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
-            console.log('FFmpeg spawned with command:', commandLine);
+            console.log('FFmpeg spawned:', commandLine);
         })
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
@@ -100,22 +102,7 @@ app.post('/start-fb-live', (req, res) => {
     command.run();
     activeStreamProcess = command;
 
-    res.send({ status: 'success', message: 'Live stream started from server successfully!' });
-});
-
-// ස්ට්‍රීම් එක නැවැත්වීමට රූට් එකක්
-app.post('/stop-fb-live', (req, res) => {
-    if (activeStreamProcess) {
-        try {
-            activeStreamProcess.kill('SIGKILL');
-        } catch (e) {
-            console.log("Error killing process:", e);
-        }
-        activeStreamProcess = null;
-        console.log("Stream stopped by user.");
-        return res.send({ status: 'success', message: 'Stream stopped successfully.' });
-    }
-    res.status(400).send({ status: 'error', message: 'No active stream running.' });
+    res.send('<h2>Live stream started from server successfully! 🚀</h2><p>You can close this page now or go back.</p>');
 });
 
 let activeViewers = 0;
