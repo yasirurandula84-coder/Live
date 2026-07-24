@@ -73,20 +73,27 @@ app.post('/start-fb-live', (req, res) => {
 
     console.log('Starting streaming to Facebook from URL:', streamUrl);
 
-    const command = ffmpeg(streamUrl)
+        const command = ffmpeg(streamUrl)
+        .inputOptions([
+            '-reconnect 1',
+            '-reconnect_streamed 1',
+            '-reconnect_delay_max 5'
+        ])
         .videoCodec('libx264')
         .audioCodec('aac')
         .format('flv')
         .outputOptions([
             '-preset ultrafast',
             '-tune zerolatency',
-            '-b:v 1500k',
-            '-maxrate 1500k',
-            '-bufsize 3000k',
+            '-b:v 1200k',       // බිට්‍රේට් එක ටිකක් අඩු කළා (සර්වර් බර අඩු වීමට)
+            '-maxrate 1200k',
+            '-bufsize 2400k',
             '-pix_fmt yuv420p',
             '-g 60'
         ])
         .output(fbRtmpUrl)
+
+        
         .on('start', (commandLine) => {
             console.log('FFmpeg spawned:', commandLine);
         })
