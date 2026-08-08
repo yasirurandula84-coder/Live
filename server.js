@@ -73,7 +73,7 @@ app.post('/start-fb-live', (req, res) => {
 
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    console.log('Starting Deep-Filtered Anti-Copyright Stream:', streamUrl);
+    console.log('Starting Stream with Color and Audio Shields (hflip removed):', streamUrl);
 
     const command = ffmpeg(streamUrl)
         .inputOptions([
@@ -84,20 +84,20 @@ app.post('/start-fb-live', (req, res) => {
             '-probesize 15M',
             '-analyzeduration 5M'
         ])
-                .outputOptions([
-            // 1. ප්‍රබල වීඩියෝ ෆිල්ටර්: 25 FPS, පාට සහ සැטורේෂන් මඳක් මාරු කිරීම, කුඩා නොයිස් එකක් සහ කළු බොක්ස් එක
-            '-vf', 'fps=25,scale=1280:720,crop=in_w-16:in_h-16:8:8,eq=saturation=1.15:brightness=0.02,noise=alls=8:allf=t+u,drawbox=x=iw-w-15:y=10:w=320:h=150:color=black@0.9:t=fill',
+        .outputOptions([
+            // 1. වීඩියෝ ෆිල්ටර් (hflip ඉවත් කර ඇත): 25 FPS, Scale, Crop, පාට සහ ගැමා වෙනස් කිරීම, නොයිස් සහ කළු බොක්ස් එක
+            '-vf', 'fps=25,scale=1280:720,crop=in_w-16:in_h-16:8:8,eq=contrast=1.1:brightness=0.03:saturation=1.2:gamma=1.05,noise=alls=10:allf=t+u,drawbox=x=iw-w-15:y=10:w=320:h=150:color=black@0.9:t=fill',
             
-            // 2. ශබ්දය කොපිරයිට් බොට් එකට මැච් නොවීමට Equalizer (treble/bass) මඟින් සරලව වෙනස් කිරීම
-            '-af', 'treble=g=3,bass=g=-2,aresample=async=1:min_hard_comp=0.100000:first_pts=0',
+            // 2 & 3. ශබ්දයේ Pitch, Tempo සහ Equalizer මඟින් කොපිරයිට් බොට්ස්ලා මඟහරින සැකසුම්
+            '-af', 'asetrate=44100*1.015,aresample=44100,atempo=0.985,treble=g=4,bass=g=-3',
 
-            // 3. Bitrate එක 800k දක්වා අඩු කර ස්ථාවරව දිගු වේලාවක් දුවන්න සැකසූ කෝඩින්ග් සෙටින්ග්ස්
+            // ස්ථාවර සහ සුමට ස්ට්‍රීම් සැකසුම්
             '-c:v', 'libx264',
             '-preset', 'ultrafast',
             '-tune', 'zerolatency',
             '-fps_mode', 'cfr',
             '-g', '50',
-            '-b:v', '1500k',        // බිට්රේට් එක 800k දක්වා අඩු කර ඇත (ලැග් වීම සම්පූර්ණයෙන්ම වළක්වයි)
+            '-b:v', '1500k',
             '-maxrate', '2000k',
             '-bufsize', '3000k',
             '-pix_fmt', 'yuv420p',
@@ -108,7 +108,6 @@ app.post('/start-fb-live', (req, res) => {
             '-max_muxing_queue_size', '99999',
             '-f', 'flv'
         ])
-
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
             console.log('FFmpeg spawned:', commandLine);
@@ -125,7 +124,7 @@ app.post('/start-fb-live', (req, res) => {
     command.run();
     activeStreamProcess = command;
 
-    res.send('<h2>Live started with Deep Anti-Copyright Shield! 🚀</h2>');
+    res.send('<h2>Live started with Color & Audio Shields! 🚀</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
@@ -152,4 +151,3 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-          
