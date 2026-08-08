@@ -56,8 +56,8 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
-// ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
-app.post('/start-fb-live', (req, res) => {
+// YouTube එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
+app.post('/start-yt-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
     // ඔයා දුන් .m3u8 ලින්ක් එක
@@ -71,9 +71,9 @@ app.post('/start-fb-live', (req, res) => {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
+    const ytRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${streamKey}`;
 
-    console.log('Starting Stream with Color and Audio Shields (hflip removed):', streamUrl);
+    console.log('Starting Deep-Filtered Anti-Copyright Stream to YouTube:', streamUrl);
 
     const command = ffmpeg(streamUrl)
         .inputOptions([
@@ -85,13 +85,13 @@ app.post('/start-fb-live', (req, res) => {
             '-analyzeduration 5M'
         ])
         .outputOptions([
-            // 1. වීඩියෝ ෆිල්ටර් (hflip ඉවත් කර ඇත): 25 FPS, Scale, Crop, පාට සහ ගැමා වෙනස් කිරීම, නොයිස් සහ කළු බොක්ස් එක
-            '-vf', 'fps=25,scale=1280:720,crop=in_w-16:in_h-16:8:8,eq=contrast=1.1:brightness=0.03:saturation=1.2:gamma=1.05,noise=alls=10:allf=t+u,drawbox=x=iw-w-15:y=10:w=320:h=150:color=black@0.9:t=fill',
+            // 1. ප්‍රබල වීඩියෝ ෆිල්ටර්: 25 FPS, පාට සහ සැטורේෂන් මඳක් මාරු කිරීම, කුඩා නොයිස් එකක් සහ කළු බොක්ස් එක
+            '-vf', 'fps=25,scale=1280:720,crop=in_w-16:in_h-16:8:8,eq=saturation=1.15:brightness=0.02,noise=alls=8:allf=t+u,drawbox=x=iw-w-15:y=10:w=320:h=150:color=black@0.9:t=fill',
             
-            // 2 & 3. ශබ්දයේ Pitch, Tempo සහ Equalizer මඟින් කොපිරයිට් බොට්ස්ලා මඟහරින සැකසුම්
-            '-af', 'asetrate=44100*1.015,aresample=44100,atempo=0.985,treble=g=4,bass=g=-3',
+            // 2. ශබ්දය කොපිරයිට් බොට් එකට මැච් නොවීමට Equalizer (treble/bass) මඟින් සරලව වෙනස් කිරීම
+            '-af', 'treble=g=3,bass=g=-2,aresample=async=1:min_hard_comp=0.100000:first_pts=0',
 
-            // ස්ථාවර සහ සුමට ස්ට්‍රීම් සැකසුම්
+            // 3. Bitrate එක 1500k සහ ස්ථාවරව දිගු වේලාවක් දුවන්න සැකසූ කෝඩින්ග් සෙටින්ග්ස්
             '-c:v', 'libx264',
             '-preset', 'ultrafast',
             '-tune', 'zerolatency',
@@ -108,7 +108,7 @@ app.post('/start-fb-live', (req, res) => {
             '-max_muxing_queue_size', '99999',
             '-f', 'flv'
         ])
-        .output(fbRtmpUrl)
+        .output(ytRtmpUrl)
         .on('start', (commandLine) => {
             console.log('FFmpeg spawned:', commandLine);
         })
@@ -124,7 +124,7 @@ app.post('/start-fb-live', (req, res) => {
     command.run();
     activeStreamProcess = command;
 
-    res.send('<h2>Live started with Color & Audio Shields! 🚀</h2>');
+    res.send('<h2>YouTube Live started with Deep Anti-Copyright Shield! 🚀</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
