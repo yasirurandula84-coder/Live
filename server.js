@@ -17,50 +17,9 @@ app.use(express.json());
 
 let activeStreamProcess = null;
 
-// ප්‍රොක්සි රූට් එක
-app.get('/proxy', async (req, res) => {
-    let targetUrl = req.query.url;
-    if (!targetUrl) return res.status(400).send('Missing url');
-
-    try {
-        const response = await fetch(targetUrl, {
-            headers: {
-                'User-Agent': 'VLC/3.0.20 LibVLC/3.0.20',
-                'Icy-MetaData': '1',
-                'Accept-Encoding': 'identity',
-                'Referer': 'https://www.itcnbd.live/'
-            }
-        });
-        response.headers.forEach((v, n) => res.setHeader(n, v));
-        res.status(response.status);
-
-        if (targetUrl.endsWith('.m3u8')) {
-            const text = await response.text();
-            const rewritten = text.split('\n').map(line => {
-                line = line.trim();
-                if (line && !line.startsWith('#')) {
-                    let absoluteUrl = line;
-                    if (!line.startsWith('http')) {
-                        const urlObj = new URL(targetUrl);
-                        absoluteUrl = `${urlObj.origin}${line.startsWith('/') ? '' : '/'}${line}`;
-                    }
-                    return `/proxy?url=${encodeURIComponent(absoluteUrl)}`;
-                }
-                return line;
-            }).join('\n');
-            return res.send(rewritten);
-        }
-        response.body.pipe(res);
-    } catch (err) {
-        res.status(500).send('Proxy error');
-    }
-});
-
 // YouTube එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-yt-live', (req, res) => {
     const streamKey = req.body.streamKey;
-    
-    // ඔයා දුන් .m3u8 ලින්ක් එක
     const streamUrl = "https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/tracks-v1a1/mono.ts.m3u8?e=1784102512&token=968935df4fd0678de5d7fe392c0610d9&u=ee5437a7-c16b-4700-";
 
     if (!streamKey) {
@@ -73,7 +32,7 @@ app.post('/start-yt-live', (req, res) => {
 
     const ytRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${streamKey}`;
 
-    console.log('Starting Deep-Filtered Anti-Copyright Stream to YouTube:', streamUrl);
+    console.log('Starting YouTube Anti-Copyright Stream:', streamUrl);
 
     const command = ffmpeg(streamUrl)
         .inputOptions([
@@ -85,33 +44,29 @@ app.post('/start-yt-live', (req, res) => {
             '-analyzeduration 5M'
         ])
         .outputOptions([
-            // 1. ප්‍රබල වීඩියෝ ෆිල්ටර්: 25 FPS, පාට සහ සැטורේෂන් මඳක් මාරු කිරීම, කුඩා නොයිස් එකක් සහ කළු බොක්ස් එක
-            '-vf', 'fps=25,scale=1280:720,crop=in_w-16:in_h-16:8:8,eq=saturation=1.15:brightness=0.02,noise=alls=8:allf=t+u,drawbox=x=iw-w-15:y=10:w=320:h=150:color=black@0.9:t=fill',
+            // 1. YouTube සඳහා ප්‍රබල වීඩියෝ ෆිල්ටර්: FPS, Scale, Crop, වර්ණ වෙනස් කිරීම (EQ), නොයිස් සහ අකුරු සැඟවීම සඳහා කළු බොක්ස් එක
+            '-vf', 'fps=25,scale=1280:720,crop=in_w-20:in_h-20:10:10,eq=saturation=1.2:brightness=0.03:contrast=1.05,noise=alls=10:allf=t+u,drawbox=x=iw-w-20:y=20:w=350:h=150:color=black@0.9:t=fill',
             
-            // 2. ශබ්දය කොපිරයිට් බොට් එකට මැච් නොවීමට Equalizer (treble/bass) මඟින් සරලව වෙනස් කිරීම
-            '-af', 'treble=g=3,bass=g=-2,aresample=async=1:min_hard_comp=0.100000:first_pts=0',
+            // 2. ශබ්දය කොපිරයිට් බොට් එකට මැච් නොවීමට Pitch සහ Tempo ඉතා සුළු වශයෙන් වෙනස් කිරීම
+            '-af', 'asetrate=44100*1.02,aresample=44100,atempo=0.98,treble=g=5,bass=g=-3',
 
-            // 3. Bitrate එක 1500k සහ ස්ථාවරව දිගු වේලාවක් දුවන්න සැකසූ කෝඩින්ග් සෙටින්ග්ස්
+            // 3. YouTube සඳහාම ප්‍රශස්ත කරන ලද බිට්රේට් සහ කෝඩින්ග් සෙටින්ග්ස්
             '-c:v', 'libx264',
-            '-preset', 'ultrafast',
+            '-preset', 'veryfast',
             '-tune', 'zerolatency',
-            '-fps_mode', 'cfr',
             '-g', '50',
-            '-b:v', '1500k',
-            '-maxrate', '2000k',
-            '-bufsize', '3000k',
+            '-b:v', '2500k',         // YouTube සඳහා 2500k වඩා ස්ථාවරයි
+            '-maxrate', '3000k',
+            '-bufsize', '5000k',
             '-pix_fmt', 'yuv420p',
             '-c:a', 'aac',
             '-b:a', '128k',
             '-ar', '44100',
             '-ac', '2',
-            '-max_muxing_queue_size', '99999',
             '-f', 'flv'
         ])
         .output(ytRtmpUrl)
-        .on('start', (commandLine) => {
-            console.log('FFmpeg spawned:', commandLine);
-        })
+        .on('start', (commandLine) => console.log('FFmpeg spawned:', commandLine))
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
             activeStreamProcess = null;
@@ -124,7 +79,7 @@ app.post('/start-yt-live', (req, res) => {
     command.run();
     activeStreamProcess = command;
 
-    res.send('<h2>YouTube Live started with Deep Anti-Copyright Shield! 🚀</h2>');
+    res.send('<h2>YouTube Live started with Anti-Copyright Shield! 🚀</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
@@ -136,16 +91,6 @@ app.get('/stop-live', (req, res) => {
     } else {
         res.status(400).send('No active stream running.');
     }
-});
-
-let activeViewers = 0;
-io.on('connection', (socket) => {
-    activeViewers++;
-    io.emit('updateViewers', activeViewers);
-    socket.on('disconnect', () => {
-        activeViewers = Math.max(0, activeViewers - 1);
-        io.emit('updateViewers', activeViewers);
-    });
 });
 
 server.listen(PORT, () => {
