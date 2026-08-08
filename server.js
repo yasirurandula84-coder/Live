@@ -44,18 +44,18 @@ app.post('/start-yt-live', (req, res) => {
             '-analyzeduration 5M'
         ])
         .outputOptions([
-            // 1. YouTube සඳහා ප්‍රබල වීඩියෝ ෆිල්ටර්: FPS, Scale, Crop, වර්ණ වෙනස් කිරීම (EQ), නොයිස් සහ අකුරු සැඟවීම සඳහා කළු බොක්ස් එක
+            // වීඩියෝ ෆිල්ටර්: FPS, Scale, Crop, වර්ණ සහ ගැමා වෙනස් කිරීම, නොයිස් එකතු කිරීම සහ කළු බොක්ස් එක
             '-vf', 'fps=25,scale=1280:720,crop=in_w-20:in_h-20:10:10,eq=saturation=1.2:brightness=0.03:contrast=1.05,noise=alls=10:allf=t+u,drawbox=x=iw-w-20:y=20:w=350:h=150:color=black@0.9:t=fill',
             
-            // 2. ශබ්දය කොපිරයිට් බොට් එකට මැච් නොවීමට Pitch සහ Tempo ඉතා සුළු වශයෙන් වෙනස් කිරීම
+            // ශබ්ද ෆිල්ටර්: Pitch සහ Tempo වෙනස් කිරීම (කොපිරයිට් බොට්ස්ලාට අල්ලා ගැනීමට අපහසු වන පරිදි)
             '-af', 'asetrate=44100*1.02,aresample=44100,atempo=0.98,treble=g=5,bass=g=-3',
 
-            // 3. YouTube සඳහාම ප්‍රශස්ත කරන ලද බිට්රේට් සහ කෝඩින්ග් සෙටින්ග්ස්
+            // YouTube සඳහා ස්ථාවර සැකසුම්
             '-c:v', 'libx264',
             '-preset', 'veryfast',
             '-tune', 'zerolatency',
             '-g', '50',
-            '-b:v', '2500k',         // YouTube සඳහා 2500k වඩා ස්ථාවරයි
+            '-b:v', '2500k',
             '-maxrate', '3000k',
             '-bufsize', '5000k',
             '-pix_fmt', 'yuv420p',
@@ -66,7 +66,7 @@ app.post('/start-yt-live', (req, res) => {
             '-f', 'flv'
         ])
         .output(ytRtmpUrl)
-        .on('start', (commandLine) => console.log('FFmpeg spawned:', commandLine))
+        .on('start', (commandLine) => console.log('FFmpeg started:', commandLine))
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
             activeStreamProcess = null;
@@ -79,7 +79,7 @@ app.post('/start-yt-live', (req, res) => {
     command.run();
     activeStreamProcess = command;
 
-    res.send('<h2>YouTube Live started with Anti-Copyright Shield! 🚀</h2>');
+    res.send('<h2>YouTube Live started successfully! 🚀</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
