@@ -1,4 +1,4 @@
-name: FB Live Streamer
+Name: YT Live Streamer
 
 on:
   workflow_dispatch: # GitHub ඩෑෂ්බෝඩ් එකෙන් Manual එකෙන් "Run workflow" ක්ලික් කරලා ලයිව් එක පටන් ගන්න
@@ -29,14 +29,13 @@ jobs:
           # සර්වර් එක බැක්ග්‍රවුන්ඩ් එකේ රන් වෙන්න හැදීම
           node server.js &
           
-          # සර්වර් එක ස්ටාර්ට් වෙන්න තත්පර 5ක් ඉඳලා ලයිව් රෝස් එකට රික්වෙස්ට් එක යැවීම (අවශ්‍ය නම් ස්ක්‍රිප්ට් එකෙන්ම ඔටෝ පටන් ගන්න හැදීමට)
+          # සර්වර් එක ස්ටාර්ට් වෙන්න තත්පර 5ක් ඉඳලා ලයිව් රූට් එකට රික්වෙස්ට් එක යැවීම
           sleep 5
           
-          # ලයිව් ස්ටාර්ට් රූට් එකට හිස් රික්වෙස්ට් එකක් හෝ ස්ට්‍රීම් කී එක සෙට් කරලා යැවීම
-          # (මෙතැනදී ඔයාගේ ෆේස්බුක් ස්ට්‍රීම් කී එක GitHub Secrets වල දාලා මෙතැනට දෙන්න පුළුවන්)
-          curl -X POST http://localhost:3000/start-fb-live \
+          # YouTube ලයිව් ස්ටාර්ට් රූට් එකට ස්ට්‍රීම් කී එක යැවීම
+          curl -X POST http://localhost:3000/start-yt-live \
             -H "Content-Type: application/json" \
-            -d '{"streamKey": "${{ secrets.FB_STREAM_KEY }}"}'
+            -d '{"streamKey": "${{ secrets.YT_STREAM_KEY }}"}'
           
-          # ලයිව් එක දිගටම ඩුවන්න කල් දීම (GitHub Actions වල මැක්සිමම් පැය 6ක් දුවන්න පුළුවන්)
+          # ලයිව් එක දිගටම දුවන්න කල් දීම (GitHub Actions වල මැක්සිමම් පැය 6ක් දුවන්න පුළුවන්)
           sleep 21600
