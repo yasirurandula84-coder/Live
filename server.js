@@ -61,7 +61,7 @@ app.post('/start-yt-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
     // ඔයා දුන් අලුත්ම .m3u8 ලින්ක් එක
-    const streamUrl = "https://sonydaimenew.akamaized.net/hls/live/20000377/cricodi1808/ENG/std_mdh-800300010.m3u8?hdnea=st=1787027186~exp=1787027486~acl=*~id=b0e2eab0-61ae-4ac1-bd7e-aaca32a6604d~hmac=22424701a7fb67aa9968dbad2ad9e735e7a408b3754012233502a25f531509ad&originpath=/linear/hls/pb/event/DgeLzKxsSMuwfRa8znq4RQ/stream/055a0648-3e85-40dd-ac03-c249ae7444a3:SIN/master.m3u8";
+    const streamUrl = "https://dai.google.com/ssai/event/DgeLzKxsSMuwfRa8znq4RQ/master.m3u8";
 
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
