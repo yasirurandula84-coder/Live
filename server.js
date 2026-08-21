@@ -17,10 +17,51 @@ app.use(express.json());
 
 let activeStreamProcess = null;
 
-// YouTube එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
-app.post('/start-yt-live', (req, res) => {
+// ප්‍රොක්සි රූට් එක
+app.get('/proxy', async (req, res) => {
+    let targetUrl = req.query.url;
+    if (!targetUrl) return res.status(400).send('Missing url');
+
+    try {
+        const response = await fetch(targetUrl, {
+            headers: {
+                'User-Agent': 'VLC/3.0.20 LibVLC/3.0.20',
+                'Icy-MetaData': '1',
+                'Accept-Encoding': 'identity',
+                'Referer': 'https://www.fancode.com/'
+            }
+        });
+        response.headers.forEach((v, n) => res.setHeader(n, v));
+        res.status(response.status);
+
+        if (targetUrl.endsWith('.m3u8')) {
+            const text = await response.text();
+            const rewritten = text.split('\n').map(line => {
+                line = line.trim();
+                if (line && !line.startsWith('#')) {
+                    let absoluteUrl = line;
+                    if (!line.startsWith('http')) {
+                        const urlObj = new URL(targetUrl);
+                        absoluteUrl = `${urlObj.origin}${line.startsWith('/') ? '' : '/'}${line}`;
+                    }
+                    return `/proxy?url=${encodeURIComponent(absoluteUrl)}`;
+                }
+                return line;
+            }).join('\n');
+            return res.send(rewritten);
+        }
+        response.body.pipe(res);
+    } catch (err) {
+        res.status(500).send('Proxy error');
+    }
+});
+
+// ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
+app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
-    const streamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
+    
+    // ඔයා දුන් අලුත්ම ලින්ක් ShoJV0NcEgMVWV1QUlMEAwdRUlxTA1RTUFABXw4AAwdVXQABUwcFAA8aSUEXREVVBwg6DFUXC1UGBQJUChlAEEJdE2lZUBIDFQFcUFMGAAVESUcRWFhURgkEB14NBVdTBgBUGhJEWV0VAkdRVAQPAlBQR0kTUEkQVkdeB1RqBgBHUQJTEg5eTFtUSUELXmhUAwgEC1UXC0YDFxxEUUYSRwtWFFpcGBJbXkwXAhBVFQpEUFBcBhcdRlBaRQhMRxtHCxotfRIYElxPTAANF1lYXkRfRxFCFx1GWkZvFF1GFhdUWQxTQhYKGwcaSUEJUU9vBQoLC1RWRQ1cW0NEAhdTRoJV0NcEgMVWV1QUlMEAwdRUlxTA1RTUFABXw4AAwdVXQABUwcFAA8aSUEXREVVBwg6DFUXC1UGBQJUChlAEEJdE2lZUBIDFQFcUFMGAAVESUcRWFhURgkEB14NBVdTBgBUGhJEWV0VAkdRVAQPAlBQR0kTUEkQVkdeB1RqBgBHUQJTEg5eTFtUSUELXmhUAwgEC1UXC0YDFxxEUUYSRwtWFFpcGBJbXkwXAhBVFQpEUFBcBhcdRlBaRQhMRxtHCxotfRIYElxPTAANF1lYXkRfRxFCFx1GWkZvFF1GFhdUWQxTQhYKGwcaSUEJUU9vBQoLC1RWRQ1cW0NEAhdTRx0aDFleXURWRWcVCgASDRJVUFxXAhdM
+    const streamUrl = "http://9937675.c24s.cc/live/fouaadkhadi/E7JWd8N9/31670.ts?token=ShoJV0NcEgMVD1xXXQhSCABcVwYJDQlcCgVRBFoGBgdUDgMCBwVRDAYaSUEXREVVBwg6DFUXC1cCAwdWFBcXFlRKPl9UFgobDgFWVFIHAhJKRxEMXFATXgICCFELBFZTAgxNFEBdVBsNGlBSUgEGCURJRwBJQVQWXVRcOVxQFAxSXUMMXkFcVRsaCg07VFJdBwsBRwsXAUYfF1kVSBdYC0RUDRoSVllNRVkRBkYKFQNeVVNHHRdSC0ZbRBRBF1hHfXNDGhJRSE1SVhYKC14VCkQRFkcdF1gXbEdVFUxHBwRcXRMUChYAGxsaCAIcb1RfCAsABkVcXgpAFwpECRdOR1xXD19EW0JmR1EBQV4SAQRUXVRSE0g=";
 
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
@@ -30,9 +71,9 @@ app.post('/start-yt-live', (req, res) => {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    const ytRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${streamKey}`;
+    const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    console.log('Starting YouTube Anti-Copyright Stream:', streamUrl);
+    console.log('Starting Anti-Copyright streaming to Facebook:', streamUrl);
 
     const command = ffmpeg(streamUrl)
         .inputOptions([
@@ -40,33 +81,38 @@ app.post('/start-yt-live', (req, res) => {
             '-reconnect_streamed 1',
             '-reconnect_delay_max 5',
             '-fflags +discardcorrupt+genpts',
-            '-probesize 15M',
-            '-analyzeduration 5M'
+            '-probesize 50M',
+            '-analyzeduration 20M'
         ])
         .outputOptions([
-            // වීඩියෝ ෆිල්ටර්: FPS, Scale, Crop, වර්ණ සහ ගැමා වෙනස් කිරීම, නොයිස් එකතු කිරීම සහ කළු බොක්ස් එක
-            '-vf', 'fps=25,scale=1280:720,crop=in_w-20:in_h-20:10:10,eq=saturation=1.2:brightness=0.03:contrast=1.05,noise=alls=10:allf=t+u,drawbox=x=iw-w-20:y=20:w=350:h=150:color=black@0.9:t=fill',
+            // 1. වීඩියෝ ෆිල්ටර්ස්: 
+            // - crop=1220:680:30:20 (දාර ටිකක් කපා හැරීමෙන් AI හැෂ් වෙනස් කරයි)
+            // - eq=saturation=1.08:brightness=0.01 (වර්ණ ස්වල්පයක් වෙනස් කරයි)
+            // - drawbox හා drawtext මඟින් දකුණු උඩ ලෝගෝ එක වසා ZANTA LIVE පෙන්වයි
+            '-vf', 'crop=1220:680:30:20,eq=saturation=1.08:brightness=0.01,drawbox=x=1010:y=10:w=220:h=60:color=black@0.9:t=fill,drawtext=text=ZANTA_LIVE:fontcolor=white:fontsize=22:x=1030:y=25',
             
-            // ශබ්ද ෆිල්ටර්: Pitch සහ Tempo වෙනස් කිරීම (කොපිරයිට් බොට්ස්ලාට අල්ලා ගැනීමට අපහසු වන පරිදි)
-            '-af', 'asetrate=44100*1.02,aresample=44100,atempo=0.98,treble=g=5,bass=g=-3',
+            // 2. ඕඩියෝ ෆිල්ටර්: කමෙන්ට්‍රි හෝ මියුසික් පිච් එක ඉතා මඳක් වෙනස් කර කොපිරাইট බොට් මඟහරියි
+            '-af', 'asetrate=44100*1.015,aresample=44100',
 
-            // YouTube සඳහා ස්ථාවර සැකසුම්
+            // 3. කෝඩින්ග් සහ ස්ට්‍රීම් සෙටින්ග්ස්
             '-c:v', 'libx264',
-            '-preset', 'veryfast',
+            '-preset', 'ultrafast',
             '-tune', 'zerolatency',
-            '-g', '50',
-            '-b:v', '2500k',
-            '-maxrate', '3000k',
-            '-bufsize', '5000k',
+            '-b:v', '1500k',
+            '-maxrate', '1500k',
+            '-bufsize', '3000k',
             '-pix_fmt', 'yuv420p',
+            '-g', '30',
             '-c:a', 'aac',
             '-b:a', '128k',
             '-ar', '44100',
-            '-ac', '2',
+            '-max_muxing_queue_size', '9999',
             '-f', 'flv'
         ])
-        .output(ytRtmpUrl)
-        .on('start', (commandLine) => console.log('FFmpeg started:', commandLine))
+        .output(fbRtmpUrl)
+        .on('start', (commandLine) => {
+            console.log('FFmpeg spawned for Anti-Copyright FB Live:', commandLine);
+        })
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
             activeStreamProcess = null;
@@ -79,11 +125,11 @@ app.post('/start-yt-live', (req, res) => {
     command.run();
     activeStreamProcess = command;
 
-    res.send('<h2>YouTube Live started successfully! 🚀</h2>');
+    res.send('<h2>Anti-Copyright Facebook Live started successfully! 🚀</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
-app.get('/stop-live', (req, res) => {
+app.get('/stop-live', (logReq, res) => {
     if (activeStreamProcess) {
         activeStreamProcess.kill('SIGKILL');
         activeStreamProcess = null;
@@ -93,6 +139,17 @@ app.get('/stop-live', (req, res) => {
     }
 });
 
+let activeViewers = 0;
+io.on('connection', (socket) => {
+    activeViewers++;
+    io.emit('updateViewers', activeViewers);
+    socket.on('disconnect', () => {
+        activeViewers = Math.max(0, activeViewers - 1);
+        io.emit('updateViewers', activeViewers);
+    });
+});
+
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+         
