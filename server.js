@@ -60,7 +60,6 @@ app.get('/proxy', async (req, res) => {
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
-    // ඔයා දුන් අලුත්ම ලින්ක් ShoJV0NcEgMVWV1QUlMEAwdRUlxTA1RTUFABXw4AAwdVXQABUwcFAA8aSUEXREVVBwg6DFUXC1UGBQJUChlAEEJdE2lZUBIDFQFcUFMGAAVESUcRWFhURgkEB14NBVdTBgBUGhJEWV0VAkdRVAQPAlBQR0kTUEkQVkdeB1RqBgBHUQJTEg5eTFtUSUELXmhUAwgEC1UXC0YDFxxEUUYSRwtWFFpcGBJbXkwXAhBVFQpEUFBcBhcdRlBaRQhMRxtHCxotfRIYElxPTAANF1lYXkRfRxFCFx1GWkZvFF1GFhdUWQxTQhYKGwcaSUEJUU9vBQoLC1RWRQ1cW0NEAhdTRoJV0NcEgMVWV1QUlMEAwdRUlxTA1RTUFABXw4AAwdVXQABUwcFAA8aSUEXREVVBwg6DFUXC1UGBQJUChlAEEJdE2lZUBIDFQFcUFMGAAVESUcRWFhURgkEB14NBVdTBgBUGhJEWV0VAkdRVAQPAlBQR0kTUEkQVkdeB1RqBgBHUQJTEg5eTFtUSUELXmhUAwgEC1UXC0YDFxxEUUYSRwtWFFpcGBJbXkwXAhBVFQpEUFBcBhcdRlBaRQhMRxtHCxotfRIYElxPTAANF1lYXkRfRxFCFx1GWkZvFF1GFhdUWQxTQhYKGwcaSUEJUU9vBQoLC1RWRQ1cW0NEAhdTRx0aDFleXURWRWcVCgASDRJVUFxXAhdM
     const streamUrl = "http://9937675.c24s.cc/live/fouaadkhadi/E7JWd8N9/31670.ts?token=ShoJV0NcEgMVD1xXXQhSCABcVwYJDQlcCgVRBFoGBgdUDgMCBwVRDAYaSUEXREVVBwg6DFUXC1cCAwdWFBcXFlRKPl9UFgobDgFWVFIHAhJKRxEMXFATXgICCFELBFZTAgxNFEBdVBsNGlBSUgEGCURJRwBJQVQWXVRcOVxQFAxSXUMMXkFcVRsaCg07VFJdBwsBRwsXAUYfF1kVSBdYC0RUDRoSVllNRVkRBkYKFQNeVVNHHRdSC0ZbRBRBF1hHfXNDGhJRSE1SVhYKC14VCkQRFkcdF1gXbEdVFUxHBwRcXRMUChYAGxsaCAIcb1RfCAsABkVcXgpAFwpECRdOR1xXD19EW0JmR1EBQV4SAQRUXVRSE0g=";
 
     if (!streamKey) {
@@ -73,7 +72,7 @@ app.post('/start-fb-live', (req, res) => {
 
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    console.log('Starting Anti-Copyright streaming to Facebook:', streamUrl);
+    console.log('Starting Anti-Copyright streaming to Facebook with Rubberband:', streamUrl);
 
     const command = ffmpeg(streamUrl)
         .inputOptions([
@@ -85,14 +84,11 @@ app.post('/start-fb-live', (req, res) => {
             '-analyzeduration 20M'
         ])
         .outputOptions([
-            // 1. වීඩියෝ ෆිල්ටර්ස්: 
-            // - crop=1220:680:30:20 (දාර ටිකක් කපා හැරීමෙන් AI හැෂ් වෙනස් කරයි)
-            // - eq=saturation=1.08:brightness=0.01 (වර්ණ ස්වල්පයක් වෙනස් කරයි)
-            // - drawbox හා drawtext මඟින් දකුණු උඩ ලෝගෝ එක වසා ZANTA LIVE පෙන්වයි
-            '-vf', 'crop=1220:680:30:20,eq=saturation=1.08:brightness=0.01,drawbox=x=1010:y=10:w=220:h=60:color=black@0.9:t=fill,drawtext=text=ZANTA_LIVE:fontcolor=white:fontsize=22:x=1030:y=25',
+            // 1. වීඩියෝ ෆිල්ටර්ස් (Crop, Color adjustments සහ Watermark)
+            '-vf', 'crop=1220:680:30:20,eq=saturation=1.08:brightness=0.06,drawbox=x=1010:y=10:w=220:h=60:color=black@0.9:t=fill,drawtext=text=ZANTA_LIVE:fontcolor=white:fontsize=22:x=1030:y=25',
             
-            // 2. ඕඩියෝ ෆිල්ටර්: කමෙන්ට්‍රි හෝ මියුසික් පිච් එක ඉතා මඳක් වෙනස් කර කොපිරাইট බොට් මඟහරියි
-            '-af', 'asetrate=44100*1.015,aresample=44100',
+            // 2. ඕඩියෝ ෆිල්ටර්: Rubberband මඟින් හඬේ පිච් එක මඳක් වෙනස් කිරීම (කොපිරයිට් බොට් මඟහරියි)
+            '-af', 'rubberband=pitch=1.14:tempo=1.0',
 
             // 3. කෝඩින්ග් සහ ස්ට්‍රීම් සෙටින්ග්ස්
             '-c:v', 'libx264',
@@ -125,7 +121,7 @@ app.post('/start-fb-live', (req, res) => {
     command.run();
     activeStreamProcess = command;
 
-    res.send('<h2>Anti-Copyright Facebook Live started successfully! 🚀</h2>');
+    res.send('<h2>Anti-Copyright Facebook Live started successfully with Rubberband! 🚀</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
@@ -152,4 +148,3 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-         
