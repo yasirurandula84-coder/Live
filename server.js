@@ -84,11 +84,11 @@ app.post('/start-fb-live', (req, res) => {
             '-analyzeduration 20M'
         ])
         .outputOptions([
-            // 1. වීඩියෝ ෆිල්ටර්ස් (Crop, Color adjustments සහ Watermark)
-            '-vf', 'crop=1220:680:30:20,eq=saturation=1.08:brightness=0.06,drawbox=x=1010:y=10:w=220:h=60:color=black@0.9:t=fill,drawtext=text=ZANTA_LIVE:fontcolor=white:fontsize=22:x=1030:y=25',
+            // 1. වීඩියෝ ෆිල්ටර්ස්: තවත් ටිකක් දාර කපා හැරීම සහ ප්‍රමාණය වෙනස් කිරීම (AI Hash සම්පූර්ණයෙන්ම මඟහරියි)
+            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.03:contrast=1.05,drawbox=x=1000:y=10:w=240:h=60:color=black@0.9:t=fill,drawtext=text=ZANTA_LIVE:fontcolor=white:fontsize=22:x=1020:y=25',
             
-            // 2. ඕඩියෝ ෆිල්ටර්: Rubberband මඟින් හඬේ පිච් එක මඳක් වෙනස් කිරීම (කොපිරයිට් බොට් මඟහරියි)
-            '-af', 'rubberband=pitch=1.14:tempo=1.0',
+            // 2. ඕඩියෝ ෆිල්ටර්: Pitch එක 1.05 සිට 1.07 අතර අගයක තැබීම ප්‍රමාණවත් (හඬ විකෘති නොවී බොට්ස්ලා මඟහරියි)
+            '-af', 'rubberband=pitch=1.06:tempo=1.0',
 
             // 3. කෝඩින්ග් සහ ස්ට්‍රීම් සෙටින්ග්ස්
             '-c:v', 'libx264',
@@ -105,6 +105,8 @@ app.post('/start-fb-live', (req, res) => {
             '-max_muxing_queue_size', '9999',
             '-f', 'flv'
         ])
+
+    
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
             console.log('FFmpeg spawned for Anti-Copyright FB Live:', commandLine);
