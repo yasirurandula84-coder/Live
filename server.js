@@ -60,7 +60,7 @@ app.get('/proxy', async (req, res) => {
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
-    const streamUrl = "http://9937675.c24s.cc/live/fouaadkhadi/E7JWd8N9/31670.ts?token=ShoJV0NcEgMVD1xXXQhSCABcVwYJDQlcCgVRBFoGBgdUDgMCBwVRDAYaSUEXREVVBwg6DFUXC1cCAwdWFBcXFlRKPl9UFgobDgFWVFIHAhJKRxEMXFATXgICCFELBFZTAgxNFEBdVBsNGlBSUgEGCURJRwBJQVQWXVRcOVxQFAxSXUMMXkFcVRsaCg07VFJdBwsBRwsXAUYfF1kVSBdYC0RUDRoSVllNRVkRBkYKFQNeVVNHHRdSC0ZbRBRBF1hHfXNDGhJRSE1SVhYKC14VCkQRFkcdF1gXbEdVFUxHBwRcXRMUChYAGxsaCAIcb1RfCAsABkVcXgpAFwpECRdOR1xXD19EW0JmR1EBQV4SAQRUXVRSE0g=";
+    const streamUrl = "http://sewv654wfcsdwfi87fwvgbngh.siauliairsavlt.pw/iptv/GR7E6CW6C7XSQL3R36FTRRWW/19146/index.m3u8";
 
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
