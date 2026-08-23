@@ -60,7 +60,7 @@ app.get('/proxy', async (req, res) => {
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
-    const streamUrl = "http://sewv654wfcsdwfi87fwvgbngh.siauliairsavlt.pw/iptv/GR7E6CW6C7XSQL3R36FTRRWW/19146/index.m3u8";
+    const streamUrl = "https://dai.google.com/ssai/event/Vqhl5bQURxa3_aLKeTXABA/master.m3u8";
 
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
@@ -85,7 +85,7 @@ app.post('/start-fb-live', (req, res) => {
         ])
         .outputOptions([
             // 1. වීඩියෝ ෆිල්ටර්ස්: තවත් ටිකක් දාර කපා හැරීම සහ ප්‍රමාණය වෙනස් කිරීම (AI Hash සම්පූර්ණයෙන්ම මඟහරියි)
-            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.03:contrast=1.05,drawbox=x=1000:y=10:w=240:h=60:color=black@0.9:t=fill,drawtext=text=ZANTA_LIVE:fontcolor=white:fontsize=22:x=1020:y=25',
+            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.03:contrast=1.05,drawbox=x=1000:y=10:w=240:h=60:color=black@0.9:t=fill,drawtext=text=ZANTA_LIVE:fontcolor=white:fontsize=28:x=1020:y=25',
             
             // 2. ඕඩියෝ ෆිල්ටර්: Pitch එක 1.05 සිට 1.07 අතර අගයක තැබීම ප්‍රමාණවත් (හඬ විකෘති නොවී බොට්ස්ලා මඟහරියි)
             '-af', 'rubberband=pitch=1.06:tempo=1.0',
