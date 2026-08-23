@@ -60,7 +60,7 @@ app.get('/proxy', async (req, res) => {
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
-    const streamUrl = "https://dai.google.com/ssai/event/Vqhl5bQURxa3_aLKeTXABA/master.m3u8";
+    const streamUrl = "http://9937675.c24s.cc/live/fouaadkhadi/E7JWd8N9/31670.ts?token=ShoJV0NcEgMVWwFTXAJSCVUDAQBVAwMHB1FRVA5RUgRQWVAPCVYFDQEaSUEXREVVBwg6DFUXC1cCAwdWFBcXFlRKPl9UFgobDgFWVFIHAhJKRxEMXFATXgICCFEMAlFcAgxNFEBdVBsNGldUVgECCVVHSUdUTUUBQVtRCmdRBxNYWwQUClpFVVsURwwKb1NVCwQLARMPE1QRGRIPS0VAX19NDVocFlJQQ0oEFwESDRJSVVRQExkTB1xAXhJKTEBfE3QqFBwWVUFDXQsQDV9ZElxHERYTGRMNQGpCA0tBEABQVQREEg4SCRUURw4FSGhTCQsLAFJBWAtdRhJcGgRASRNVDlhZQF9LaEgMB0YKFQZSV11UBhdM";
 
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
