@@ -1,4 +1,4 @@
-const express = require('express');
+Const express = require('express');
 const path = require('path');
 const fetch = require('node-fetch');
 const http = require('http');
@@ -60,8 +60,7 @@ app.get('/proxy', async (req, res) => {
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
-    // Star Sports / Ten Sports M3U8 Link එක
-    const streamUrl = "http://9937675.f2k1g.cc/live/fouaadkhadi/E7JWd8N9/31670.ts?token=ShoJV0NcEgMVAQFaUQJVCQJRXFQAUFVTAAUHUQkBAVQGDAMHUwYJDAIaSUEXREVVBwg6DFUXC1cCAwdWFBcXFlRKPl9UFgobDgFWVFIHAhJKRxEMXFATXgICCFENAFBWBABNFEBdVBsNGlZTVQgGCVVHSUdUTUUBQVtRCmdRBxNYWwQUClpFVVsURwwKb1NVCwQLARMPE1QRGRIPS0VAX19NDVocFlJQQ0oEFwESDRJVXVRTExkTB1xAXhJKTEBfE3QqFBwWVUFDXQsQDV9ZElxHERYTGRMNQGpCA0tBEABQVQREEg4SCRUURw4FSGhTCQsLAFJBWAtdRhJcGgRASRNVDlhZQF9LaEgMB0YKFQFfXVNcE0g=";
+    const streamUrl = "https://9937675.f2k1g.cc/live/fouaadkhadi/E7JWd8N9/31670.ts?token=ShoJV0NcEgMVAQFaUQJVCQJRXFQAUFVTAAUHUQkBAVQGDAMHUwYJDAIaSUEXREVVBwg6DFUXC1cCAwdWFBcXFlRKPl9UFgobDgFWVFIHAhJKRxEMXFATXgICCFENAFBWBABNFEBdVBsNGlZTVQgGCVVHSUdUTUUBQVtRCmdRBxNYWwQUClpFVVsURwwKb1NVCwQLARMPE1QRGRIPS0VAX19NDVocFlJQQ0oEFwESDRJVXVRTExkTB1xAXhJKTEBfE3QqFBwWVUFDXQsQDV9ZElxHERYTGRMNQGpCA0tBEABQVQREEg4SCRUURw4FSGhTCQsLAFJBWAtdRhJcGgRASRNVDlhZQF9LaEgMB0YKFQFfXVNcE0g=";
 
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
@@ -80,17 +79,16 @@ app.post('/start-fb-live', (req, res) => {
             '-reconnect 1',
             '-reconnect_streamed 1',
             '-reconnect_delay_max 5',
-            '-reconnect_at_eof 1',
             '-fflags +discardcorrupt+genpts',
             '-probesize 50M',
             '-analyzeduration 20M'
         ])
-                .outputOptions([
-            // 1. වීඩියෝ ෆිල්ටර්ස් (Crop, Color adjustments, සහ SVG Logo Overlay එක)
-            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,movie=public/logo.svg [logo]; [in][logo] overlay=1000:10',
+        .outputOptions([
+            // 1. වීඩියෝ ෆිල්ටර්ස්: තවත් ටිකක් දාර කපා හැරීම සහ ප්‍රමාණය වෙනස් කිරීම (AI Hash සම්පූර්ණයෙන්ම මඟහරියි)
+            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,movie=public/logo.svg [logo]; [in][logo] overlay=1000:10 [watermark]',
             
-            // 2. ඕඩියෝ ෆිල්ටර්: Pitch එක 1.08
-            '-af', 'rubberband=pitch=1.08:tempo=1.0',
+            // 2. ඕඩියෝ ෆිල්ටර්: Pitch එක 1.05 සිට 1.07 අතර අගයක තැබීම ප්‍රමාණවත් (හඬ විකෘති නොවී බොට්ස්ලා මඟහරියි)
+            '-af', 'rubberband=pitch=1.12:tempo=1.0',
 
             // 3. කෝඩින්ග් සහ ස්ට්‍රීම් සෙටින්ග්ස්
             '-c:v', 'libx264',
@@ -108,6 +106,7 @@ app.post('/start-fb-live', (req, res) => {
             '-f', 'flv'
         ])
 
+    
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
             console.log('FFmpeg spawned for Anti-Copyright FB Live:', commandLine);
@@ -151,3 +150,5 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
+Me den thiyena stream url link Eka dammama Tika welawak live Eka watenawa. Etapasse Nathi wenawa. GitHub eke log eke watenawa stream end kiyala
