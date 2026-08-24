@@ -86,10 +86,10 @@ app.post('/start-fb-live', (req, res) => {
             '-analyzeduration 20M'
         ])
         .outputOptions([
-            // 1. වීඩියෝ ෆිල්ටර්ස් (Crop, Color adjustments සහ Watermark)
-            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,movie=public/logo.svg [logo]; [in][logo] overlay=1000:10 [watermark]',
-
-            // 2. ඕඩියෝ ෆිල්ටර්: ස්ථාවර අගයක් (Pitch 1.06)
+            // 1. වීඩියෝ ෆිල්ටර්ස් (Crop, Color adjustments, සහ SVG Logo Overlay එක)
+            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,movie=public/logo.svg [logo]; [in][logo] overlay=1000:10',
+            
+            // 2. ඕඩියෝ ෆිල්ටර්: Pitch එක 1.08
             '-af', 'rubberband=pitch=1.08:tempo=1.0',
 
             // 3. කෝඩින්ග් සහ ස්ට්‍රීම් සෙටින්ග්ස්
@@ -106,6 +106,8 @@ app.post('/start-fb-live', (req, res) => {
             '-ar', '44100',
             '-max_muxing_queue_size', '9999',
             '-f', 'flv'
+    
+
         ])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
