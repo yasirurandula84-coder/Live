@@ -60,7 +60,7 @@ app.get('/proxy', async (req, res) => {
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
-    // Ten Sports M3U8 Link එක
+    // Star Sports / Ten Sports M3U8 Link එක
     const streamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
 
     if (!streamKey) {
@@ -81,7 +81,6 @@ app.post('/start-fb-live', (req, res) => {
             '-reconnect_streamed 1',
             '-reconnect_delay_max 5',
             '-reconnect_at_eof 1',
-            '-reconnect_lake 1',
             '-fflags +discardcorrupt+genpts',
             '-probesize 50M',
             '-analyzeduration 20M'
@@ -99,7 +98,7 @@ app.post('/start-fb-live', (req, res) => {
             '-tune', 'zerolatency',
             '-b:v', '1200k',
             '-maxrate', '1800k',
-            '-bufsize', '3000k',
+            '-bufsize', '3200k',
             '-pix_fmt', 'yuv420p',
             '-g', '30',
             '-c:a', 'aac',
