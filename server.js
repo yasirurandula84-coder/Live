@@ -61,7 +61,7 @@ app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
     // Star Sports / Ten Sports M3U8 Link එක
-    const streamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
+    const streamUrl = "http://9937675.f2k1g.cc/live/fouaadkhadi/E7JWd8N9/31670.ts?token=ShoJV0NcEgMVAQFaUQJVCQJRXFQAUFVTAAUHUQkBAVQGDAMHUwYJDAIaSUEXREVVBwg6DFUXC1cCAwdWFBcXFlRKPl9UFgobDgFWVFIHAhJKRxEMXFATXgICCFENAFBWBABNFEBdVBsNGlZTVQgGCVVHSUdUTUUBQVtRCmdRBxNYWwQUClpFVVsURwwKb1NVCwQLARMPE1QRGRIPS0VAX19NDVocFlJQQ0oEFwESDRJVXVRTExkTB1xAXhJKTEBfE3QqFBwWVUFDXQsQDV9ZElxHERYTGRMNQGpCA0tBEABQVQREEg4SCRUURw4FSGhTCQsLAFJBWAtdRhJcGgRASRNVDlhZQF9LaEgMB0YKFQFfXVNcE0g=";
 
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
