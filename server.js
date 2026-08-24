@@ -87,10 +87,10 @@ app.post('/start-fb-live', (req, res) => {
         ])
         .outputOptions([
             // 1. වීඩියෝ ෆිල්ටර්ස් (Crop, Color adjustments සහ Watermark)
-            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,drawbox=x=1000:y=10:w=200:h=90:color=black@0.9:t=fill,drawtext=text=ZANTA_LIVE:fontcolor=white:fontsize=28:x=1020:y=25',
-            
+            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,movie=public/logo.svg [logo]; [in][logo] overlay=1000:10 [watermark]',
+
             // 2. ඕඩියෝ ෆිල්ටර්: ස්ථාවර අගයක් (Pitch 1.06)
-            '-af', 'rubberband=pitch=1.06:tempo=1.0',
+            '-af', 'rubberband=pitch=1.08:tempo=1.0',
 
             // 3. කෝඩින්ග් සහ ස්ට්‍රීම් සෙටින්ග්ස්
             '-c:v', 'libx264',
