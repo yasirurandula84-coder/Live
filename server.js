@@ -60,6 +60,7 @@ app.get('/proxy', async (req, res) => {
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
+    // Ten Sports M3U8 Link එක
     const streamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
 
     if (!streamKey) {
@@ -79,16 +80,18 @@ app.post('/start-fb-live', (req, res) => {
             '-reconnect 1',
             '-reconnect_streamed 1',
             '-reconnect_delay_max 5',
+            '-reconnect_at_eof 1',
+            '-reconnect_lake 1',
             '-fflags +discardcorrupt+genpts',
             '-probesize 50M',
             '-analyzeduration 20M'
         ])
         .outputOptions([
-            // 1. වීඩියෝ ෆිල්ටර්ස්: තවත් ටිකක් දාර කපා හැරීම සහ ප්‍රමාණය වෙනස් කිරීම (AI Hash සම්පූර්ණයෙන්ම මඟහරියි)
+            // 1. වීඩියෝ ෆිල්ටර්ස් (Crop, Color adjustments සහ Watermark)
             '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,drawbox=x=1000:y=10:w=200:h=90:color=black@0.9:t=fill,drawtext=text=ZANTA_LIVE:fontcolor=white:fontsize=28:x=1020:y=25',
             
-            // 2. ඕඩියෝ ෆිල්ටර්: Pitch එක 1.05 සිට 1.07 අතර අගයක තැබීම ප්‍රමාණවත් (හඬ විකෘති නොවී බොට්ස්ලා මඟහරියි)
-            '-af', 'rubberband=pitch=1.12:tempo=1.0',
+            // 2. ඕඩියෝ ෆිල්ටර්: ස්ථාවර අගයක් (Pitch 1.06)
+            '-af', 'rubberband=pitch=1.06:tempo=1.0',
 
             // 3. කෝඩින්ග් සහ ස්ට්‍රීම් සෙටින්ග්ස්
             '-c:v', 'libx264',
@@ -96,7 +99,7 @@ app.post('/start-fb-live', (req, res) => {
             '-tune', 'zerolatency',
             '-b:v', '1200k',
             '-maxrate', '1800k',
-            '-bufsize', '3200k',
+            '-bufsize', '3000k',
             '-pix_fmt', 'yuv420p',
             '-g', '30',
             '-c:a', 'aac',
@@ -105,8 +108,6 @@ app.post('/start-fb-live', (req, res) => {
             '-max_muxing_queue_size', '9999',
             '-f', 'flv'
         ])
-
-    
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
             console.log('FFmpeg spawned for Anti-Copyright FB Live:', commandLine);
