@@ -85,7 +85,7 @@ app.post('/start-fb-live', (req, res) => {
             '-probesize 50M',
             '-analyzeduration 20M'
         ])
-        .outputOptions([
+                .outputOptions([
             // 1. වීඩියෝ ෆිල්ටර්ස් (Crop, Color adjustments, සහ SVG Logo Overlay එක)
             '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,movie=public/logo.svg [logo]; [in][logo] overlay=1000:10',
             
@@ -106,9 +106,8 @@ app.post('/start-fb-live', (req, res) => {
             '-ar', '44100',
             '-max_muxing_queue_size', '9999',
             '-f', 'flv'
-    
-
         ])
+
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
             console.log('FFmpeg spawned for Anti-Copyright FB Live:', commandLine);
