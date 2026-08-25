@@ -73,7 +73,7 @@ app.get('/proxy', async (req, res) => {
 // ෆේස්බුක් ලින්ක් එක දීලා ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
-    const rawUrl = req.body.sourceUrl || "https://www.facebook.com/100092637939442/posts/999658283132094/?mibextid=rS40aB7S9Ucbxw6v";
+    const rawUrl = req.body.sourceUrl || "https://www.facebook.com/share/v/19HgW4nBRn/";
     
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
