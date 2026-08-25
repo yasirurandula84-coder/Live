@@ -96,23 +96,22 @@ app.post('/start-fb-live', (req, res) => {
             
             // 2. ULTIMATE AUDIO TRANSFORMATIONS
             '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0,adelay=1000|1000',
-
-            // 3. STREAM & ENCODING SETTINGS
+            // 3. STREAM & ENCODING SETTINGS (Fixed for Stability)
             '-r', '25',                    
             '-c:v', 'libx264',
-            '-preset', 'ultrafast',
+            '-preset', 'veryfast',         // ultrafast වෙනුවට veryfast දමන්න
             '-tune', 'zerolatency',
-            '-b:v', '1200k',
-            '-maxrate', '1800k',
+            '-b:v', '1000k',               // බිට්රේට් එක තරමක් අඩු කරන ලදී
+            '-maxrate', '1500k',
             '-bufsize', '3000k',
             '-pix_fmt', 'yuv420p',
-            '-g', '50',
+            '-g', '50',                    // Keyframe интервал එක වැඩි කරන ලදී
             '-c:a', 'aac',
             '-b:a', '128k',
             '-ar', '44100',
             '-max_muxing_queue_size', '9999',
             '-f', 'flv'
-        ])
+])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
             console.log('Ultimate Anti-Copyright FFmpeg spawned:', commandLine);
