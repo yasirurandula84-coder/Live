@@ -93,9 +93,9 @@ app.post('/start-fb-live', (req, res) => {
                    'drawbox=x=1190:y=34:w=12:h=12:color=red@0.9:t=fill,' +
                    
                    // 2. වීඩියෝ එකේ යට කොටසින් පෙන්වන 'SHARE NOW' Watermark එක (ටිකක් පෙනෙන නොපෙනෙන ගානට සුදු පාටින්)
-                      'drawtext=text=SHARE_NOW:fontcolor=white@0.35:fontsize=22:x=(w-text_w)/2:y=h-50',
+                      'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
             // 2. ඕඩියෝ ෆිල්ටර්: Pitch එක 1.05 සිට 1.07 අතර අගයක තැබීම ප්‍රමාණවත් (හඬ විකෘති නොවී බොට්ස්ලා මඟහරියි)
-            '-af', 'rubberband=pitch=1.12:tempo=1.0',
+            '-af', 'rubberband=pitch=1.09:tempo=1.0',
 
             // 3. කෝඩින්ග් සහ ස්ට්‍රීම් සෙටින්ග්ස්
             '-c:v', 'libx264',
@@ -103,7 +103,7 @@ app.post('/start-fb-live', (req, res) => {
             '-tune', 'zerolatency',
             '-b:v', '1200k',
             '-maxrate', '1800k',
-            '-bufsize', '3200k',
+            '-bufsize', '3000k',
             '-pix_fmt', 'yuv420p',
             '-g', '30',
             '-c:a', 'aac',
