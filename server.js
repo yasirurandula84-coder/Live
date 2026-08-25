@@ -82,9 +82,9 @@ app.post('/start-fb-live', (req, res) => {
             '-probesize 50M',
             '-analyzeduration 20M'
         ])
-        .outputOptions([
-            // 1. ULTIMATE VIDEO TRANSFORMATIONS (වැරදි සංකේත ඉවත් කර නිවැරදි කරන ලදී)
-            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=2.15:brightness=0.02:contrast=2.28,noise=alls=4:allf=t,' +
+                .outputOptions([
+            // 1. ULTIMATE HEAVY TRANSFORMATIONS (ತවත් වැඩිපුර සූම් කර, වර්ණ සහ හැඩය වෙනස් කිරීම)
+            '-vf', 'scale=1440:810,crop=1280:720:(in_w-1280)/2:(in_h-720)/2,setpts=0.998*PTS,eq=saturation=2.3:brightness=0.03:contrast=2.4,noise=alls=6:allf=t+' +
                    // උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
                    'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
                    'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
@@ -92,26 +92,28 @@ app.post('/start-fb-live', (req, res) => {
                    'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
                    'drawbox=x=1190:y=34:w=12:h=12:color=yellow@0.9:t=fill,' +
                    // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
-                   'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
+                   'drawtext=text=SHARE_NOW:fontcolor=white@0.79:fontsize=22:x=(w-text_w)/2:y=h-50',
             
             // 2. ULTIMATE AUDIO TRANSFORMATIONS
             '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0,adelay=1000|1000',
-            // 3. STREAM & ENCODING SETTINGS (Fixed for Stability)
+
+            // 3. STREAM & ENCODING SETTINGS
             '-r', '25',                    
             '-c:v', 'libx264',
-            '-preset', 'veryfast',         // ultrafast වෙනුවට veryfast දමන්න
+            '-preset', 'veryfast',         
             '-tune', 'zerolatency',
-            '-b:v', '1000k',               // බිට්රේට් එක තරමක් අඩු කරන ලදී
+            '-b:v', '1000k',               
             '-maxrate', '1500k',
             '-bufsize', '3000k',
             '-pix_fmt', 'yuv420p',
-            '-g', '50',                    // Keyframe интервал එක වැඩි කරන ලදී
+            '-g', '50',                    
             '-c:a', 'aac',
             '-b:a', '128k',
             '-ar', '44100',
             '-max_muxing_queue_size', '9999',
             '-f', 'flv'
-])
+        ])
+
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
             console.log('Ultimate Anti-Copyright FFmpeg spawned:', commandLine);
