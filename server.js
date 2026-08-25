@@ -4,6 +4,7 @@ const fetch = require('node-fetch');
 const http = require('http');
 const { Server } = require('socket.io');
 const ffmpeg = require('fluent-ffmpeg');
+const { spawn } = require('child_process');
 
 const app = express();
 const server = http.createServer(app);
@@ -56,79 +57,105 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
-// ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
-app.post('/start-fb-live', (req, res) => {
+// ෆේස්බුක් ලින්ක් එක දීලා ලයිව් එක පටන් ගන්න රූට් එක
+app.post('/start-fb-live', async (req, res) => {
     const streamKey = req.body.streamKey;
     
-    const streamUrl = "https://playztv-apps.pages.dev/willow/index.m3u8";
+    // මෙතැනට ඔයා දුන්න Facebook වීඩියෝ ලින්ක් එක ඩිරෙක්ට්ම දාන්න පුළුවන්
+    const fbVideoUrl = req.body.sourceUrl || "https://www.facebook.com/61587962212008/videos/1631157078626457/?mibextid=rS40aB7S9Ucbxw6v";
+    
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
     }
+    
+    // ... ඉතිරි කෝඩ් එක එලෙසම පවතියි ...
+
 
     if (activeStreamProcess) {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
+    res.send('<h2>Connecting to Facebook Live & Starting Restream... 🚀</h2>');
 
-    console.log('Starting Ultimate Anti-Copyright streaming to Facebook:', streamUrl);
+    console.log('Fetching direct stream link from Facebook URL:', fbVideoUrl);
 
-    const command = ffmpeg(streamUrl)
-        .inputOptions([
-            '-reconnect 1',
-            '-reconnect_streamed 1',
-            '-reconnect_delay_max 5',
-            '-fflags +discardcorrupt+genpts',
-            '-probesize 50M',
-            '-analyzeduration 20M'
-        ])
-        .outputOptions([
-            // 1. ULTIMATE VIDEO TRANSFORMATIONS (වැරදි සංකේත ඉවත් කර නිවැරදි කරන ලදී)
-            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=2.15:brightness=0.02:contrast=2.28,noise=alls=4:allf=t,' +
-                   // උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
-                   'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
-                   'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
-                   'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
-                   'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
-                   'drawbox=x=1190:y=34:w=12:h=12:color=yellow@0.9:t=fill,' +
-                   // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
-                   'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
-            
-            // 2. ULTIMATE AUDIO TRANSFORMATIONS
-            '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0,adelay=1000|1000',
-            // 3. STREAM & ENCODING SETTINGS (Fixed for Stability)
-            '-r', '25',                    
-            '-c:v', 'libx264',
-            '-preset', 'veryfast',         // ultrafast වෙනුවට veryfast දමන්න
-            '-tune', 'zerolatency',
-            '-b:v', '1000k',               // බිට්රේට් එක තරමක් අඩු කරන ලදී
-            '-maxrate', '1500k',
-            '-bufsize', '3000k',
-            '-pix_fmt', 'yuv420p',
-            '-g', '50',                    // Keyframe интервал එක වැඩි කරන ලදී
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            '-ar', '44100',
-            '-max_muxing_queue_size', '9999',
-            '-f', 'flv'
-])
-        .output(fbRtmpUrl)
-        .on('start', (commandLine) => {
-            console.log('Ultimate Anti-Copyright FFmpeg spawned:', commandLine);
-        })
-        .on('error', (err) => {
-            console.error('Streaming error:', err.message);
-            activeStreamProcess = null;
-        })
-        .on('end', () => {
-            console.log('Streaming finished.');
-            activeStreamProcess = null;
-        });
+    // yt-dlp පාවිච්චි කරලා Facebook ලින්ක් එකෙන් ඩිරෙක්ට් වීඩියෝ ලින්ක් එක ලබා ගැනීම
+    const ytdlp = spawn('yt-dlp', ['-g', fbVideoUrl]);
 
-    command.run();
-    activeStreamProcess = command;
+    let directStreamUrl = '';
 
-    res.send('<h2>Ultimate Anti-Copyright Facebook Live started successfully! 🚀🔥</h2>');
+    ytdlp.stdout.on('data', (data) => {
+        directStreamUrl += data.toString().trim();
+    });
+
+    ytdlp.stderr.on('data', (data) => {
+        console.error(`yt-dlp error: ${data}`);
+    });
+
+    ytdlp.on('close', (code) => {
+        if (code !== 0 || !directStreamUrl) {
+            console.error('Failed to extract direct stream URL from Facebook link.');
+            return;
+        }
+
+        console.log('Successfully got direct stream URL. Starting FFmpeg...');
+
+        const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
+
+        // FFmpeg හරහා ප්‍රොසෙස් කර අපේ පේජ් එකට ස්ට්‍රීම් කිරීම
+        const command = ffmpeg(directStreamUrl.split('\n')[0]) // 첫 번째 m3u8/mp4 ලින්ක් එක ගැනීම
+            .inputOptions([
+                '-reconnect 1',
+                '-reconnect_streamed 1',
+                '-reconnect_delay_max 5',
+                '-fflags +discardcorrupt+genpts',
+                '-probesize 50M',
+                '-analyzeduration 20M'
+            ])
+            .outputOptions([
+                // වීඩියෝ ෆිල්ටර්ස් සහ ලෝගෝ
+                '-vf', 'scale=1280:720,setpts=0.998*PTS,eq=saturation=1.2:brightness=0.02:contrast=1.3,' +
+                       'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
+                       'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
+                       'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
+                       'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
+                       'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
+                
+                // ඕඩියෝ ෆිල්ටර්ස්
+                '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0',
+
+                // ස්ට්‍රීම් සෙටින්ග්ස්
+                '-r', '25',                    
+                '-c:v', 'libx264',
+                '-preset', 'veryfast',         
+                '-tune', 'zerolatency',
+                '-b:v', '1000k',               
+                '-maxrate', '1500k',
+                '-bufsize', '3000k',
+                '-pix_fmt', 'yuv420p',
+                '-g', '50',                    
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-ar', '44100',
+                '-max_muxing_queue_size', '9999',
+                '-f', 'flv'
+            ])
+            .output(fbRtmpUrl)
+            .on('start', (commandLine) => {
+                console.log('Restream FFmpeg spawned:', commandLine);
+            })
+            .on('error', (err) => {
+                console.error('Streaming error:', err.message);
+                activeStreamProcess = null;
+            })
+            .on('end', () => {
+                console.log('Streaming finished.');
+                activeStreamProcess = null;
+            });
+
+        command.run();
+        activeStreamProcess = command;
+    });
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
