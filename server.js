@@ -84,7 +84,7 @@ app.post('/start-fb-live', (req, res) => {
         ])
         .outputOptions([
             // 1. ULTIMATE VIDEO TRANSFORMATIONS (වැරදි සංකේත ඉවත් කර නිවැරදි කරන ලදී)
-            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t,' +
+            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=2.15:brightness=0.02:contrast=2.28,noise=alls=4:allf=t,' +
                    // උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
                    'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
                    'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
@@ -106,7 +106,7 @@ app.post('/start-fb-live', (req, res) => {
             '-maxrate', '1800k',
             '-bufsize', '3000k',
             '-pix_fmt', 'yuv420p',
-            '-g', '30',
+            '-g', '50',
             '-c:a', 'aac',
             '-b:a', '128k',
             '-ar', '44100',
