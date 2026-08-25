@@ -4,7 +4,8 @@ const fetch = require('node-fetch');
 const http = require('http');
 const { Server } = require('socket.io');
 const ffmpeg = require('fluent-ffmpeg');
-const { spawn } = require('child_process');
+const { execSync, spawn } = require('child_process');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -15,6 +16,18 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// සර්වර් එක ඔන් වෙනකොට yt-dlp නැත්නම් එය ස්වයංක්‍රීයව ඩවුන්ලෝඩ් කරගැනීම
+const ytDlpPath = path.join(__dirname, 'yt-dlp');
+if (!fs.existsSync(ytDlpPath)) {
+    console.log('Downloading yt-dlp binary for the server...');
+    try {
+        execSync('curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp && chmod a+rx yt-dlp');
+        console.log('yt-dlp downloaded successfully!');
+    } catch (err) {
+        console.error('Failed to download yt-dlp:', err.message);
+    }
+}
 
 let activeStreamProcess = null;
 
@@ -58,18 +71,13 @@ app.get('/proxy', async (req, res) => {
 });
 
 // ෆේස්බුක් ලින්ක් එක දීලා ලයිව් එක පටන් ගන්න රූට් එක
-app.post('/start-fb-live', async (req, res) => {
+app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
-    
-    // මෙතැනට ඔයා දුන්න Facebook වීඩියෝ ලින්ක් එක ඩිරෙක්ට්ම දාන්න පුළුවන්
     const fbVideoUrl = req.body.sourceUrl || "https://www.facebook.com/61587962212008/videos/1631157078626457/?mibextid=rS40aB7S9Ucbxw6v";
     
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
     }
-    
-    // ... ඉතිරි කෝඩ් එක එලෙසම පවතියි ...
-
 
     if (activeStreamProcess) {
         return res.status(400).send('A stream is already running! Stop it first.');
@@ -77,33 +85,33 @@ app.post('/start-fb-live', async (req, res) => {
 
     res.send('<h2>Connecting to Facebook Live & Starting Restream... 🚀</h2>');
 
-    console.log('Fetching direct stream link from Facebook URL:', fbVideoUrl);
+    console.log('Fetching direct stream link using local yt-dlp:', fbVideoUrl);
 
-    // yt-dlp පාවිච්චි කරලා Facebook ලින්ක් එකෙන් ඩිරෙක්ට් වීඩියෝ ලින්ක් එක ලබා ගැනීම
-    const ytdlp = spawn('yt-dlp', ['-g', fbVideoUrl]);
+    // අපේම ෆෝල්ඩර් එකේ තියෙන yt-dlp බයිනරි එක පාවිච්චි කරමින් länk එක ලබා ගැනීම
+    const ytdlpProcess = spawn(ytDlpPath, ['-g', fbVideoUrl]);
 
     let directStreamUrl = '';
 
-    ytdlp.stdout.on('data', (data) => {
-        directStreamUrl += data.toString().trim();
+    ytdlpProcess.stdout.on('data', (data) => {
+        directStreamUrl += data.toString();
     });
 
-    ytdlp.stderr.on('data', (data) => {
-        console.error(`yt-dlp error: ${data}`);
+    ytdlpProcess.stderr.on('data', (data) => {
+        console.error(`yt-dlp stderr: ${data}`);
     });
 
-    ytdlp.on('close', (code) => {
-        if (code !== 0 || !directStreamUrl) {
+    ytdlpProcess.on('close', (code) => {
+        if (code !== 0 || !directStreamUrl.trim()) {
             console.error('Failed to extract direct stream URL from Facebook link.');
             return;
         }
 
-        console.log('Successfully got direct stream URL. Starting FFmpeg...');
+        const streamUrlToUse = directStreamUrl.trim().split('\n')[0];
+        console.log('Successfully got Direct URL. Starting FFmpeg...');
 
         const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-        // FFmpeg හරහා ප්‍රොසෙස් කර අපේ පේජ් එකට ස්ට්‍රීම් කිරීම
-        const command = ffmpeg(directStreamUrl.split('\n')[0]) // 첫 번째 m3u8/mp4 ලින්ක් එක ගැනීම
+        const command = ffmpeg(streamUrlToUse)
             .inputOptions([
                 '-reconnect 1',
                 '-reconnect_streamed 1',
@@ -113,18 +121,13 @@ app.post('/start-fb-live', async (req, res) => {
                 '-analyzeduration 20M'
             ])
             .outputOptions([
-                // වීඩියෝ ෆිල්ටර්ස් සහ ලෝගෝ
                 '-vf', 'scale=1280:720,setpts=0.998*PTS,eq=saturation=1.2:brightness=0.02:contrast=1.3,' +
                        'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
                        'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
                        'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
                        'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
                        'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
-                
-                // ඕඩියෝ ෆිල්ටර්ස්
                 '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0',
-
-                // ස්ට්‍රීම් සෙටින්ග්ස්
                 '-r', '25',                    
                 '-c:v', 'libx264',
                 '-preset', 'veryfast',         
