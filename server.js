@@ -86,7 +86,7 @@ app.post('/start-fb-live', (req, res) => {
             // 1. ULTIMATE VIDEO TRANSFORMATIONS (FPS, Speed, Noise, Crop, EQ & Branding)
             '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t+' +
                    // උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව (බෝඩරය මඳක් වෙනස් කළ වර්ණයකින්)
-                   'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
+                   'drawbox=x=1050:y=10:w=200:h=60:color=black@1.05:t=fill,' +
                    'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
                    'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
                    'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
