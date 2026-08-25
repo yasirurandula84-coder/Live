@@ -73,7 +73,7 @@ app.get('/proxy', async (req, res) => {
 // ෆේස්බුක් ලින්ක් එක දීලා ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
-    const fbVideoUrl = req.body.sourceUrl || "https://www.facebook.com/61587962212008/videos/1631157078626457/?mibextid=rS40aB7S9Ucbxw6v";
+    const rawUrl = req.body.sourceUrl || "https://www.facebook.com/61587962212008/videos/1631157078626457/";
     
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
@@ -83,11 +83,17 @@ app.post('/start-fb-live', (req, res) => {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
+    // Facebook ලින්ක් එකෙන් Video ID එක වෙන් කරගෙන Embed ලින්ක් එකක් බවට හැරවීම
+    let fbVideoUrl = rawUrl;
+    const match = rawUrl.match(/\/videos\/(\d+)/) || rawUrl.match(/v=(\d+)/);
+    if (match && match[1]) {
+        fbVideoUrl = `https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/video.php?v=${match[1]}`;
+    }
+
     res.send('<h2>Connecting to Facebook Live & Starting Restream... 🚀</h2>');
 
-    console.log('Fetching direct stream link using local yt-dlp:', fbVideoUrl);
+    console.log('Fetching direct stream link using Embed URL:', fbVideoUrl);
 
-    // අපේම ෆෝල්ඩර් එකේ තියෙන yt-dlp බයිනරි එක පාවිච්චි කරමින් länk එක ලබා ගැනීම
     const ytdlpProcess = spawn(ytDlpPath, ['-g', fbVideoUrl]);
 
     let directStreamUrl = '';
