@@ -60,8 +60,7 @@ app.get('/proxy', async (req, res) => {
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
     
-    const streamUrl = "http://9937675.c24s.cc/live/fouaadkhadi/E7JWd8N9/31670.ts?token=ShoJV0NcEgMVCFYAVgdUCQBRVlRUDQRdVlcIUQsAUlFVDQNVBVYDCgYaSUEXREVVBwg6DFUXC1cCAwdWFBcXFlRKPl9UFgobDgFWVFIHAhJKRxEMXFATXgICCFENA1tdBApNFEBdVBsNGldUXQUOAFBHSUdUTUUBQVtRCmdRBxNYWwQUClpFVVsURwwKb1NVCwQLARMPE1QRGRIPS0VAX19NDVocFlJQQ0oEFwESDRJVXVdQExkTB1xAXhJKTEBfE3QqFBwWVUFDXQsQDV9ZElxHERYTGRMNQGpCA0tBEABQVQREEg4SCRUURw4FSGhTCQsLAFJBWAtdRhJcGgRASRNVDlhZQF9LaEgMB0YKFQZSV11UBhdM";
-
+    const streamUrl = "https://playztv-apps.pages.dev/willow/index.m3u8";
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
     }
@@ -85,18 +84,18 @@ app.post('/start-fb-live', (req, res) => {
         ])
         .outputOptions([
             // 1. වීඩියෝ ෆිල්ටර්ස්: තවත් ටිකක් දාර කපා හැරීම සහ ප්‍රමාණය වෙනස් කිරීම (AI Hash සම්පූර්ණයෙන්ම මඟහරියි)
-               '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,' +
-                   // 1. ප්‍රධාන පසුබිම් කොටුව (Dark Rounded Box එකක් වගේ පෙන්වන්න)
-                   'drawbox=x=980:y=10:w=200:h=60:color=black@0.85:t=fill,' +
-                   // 2. වටකුරු දාර සඳහා බෝඩර් රේඛාවක් (Border)
-                   'drawbox=x=980:y=10:w=200:h=60:color=red@0.8:t=2,' +
-                   // 3. 'LIVE' කියන සුදු අකුරු
-                   'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1005:y=24,' +
-                   // 4. 'SL' කියන රතු අකුරු
-                   'drawtext=text=SL:fontcolor=red:fontsize=24:x=1075:y=24,' +
-                   // 5. ලයිව් එක පෙන්වන කුඩා රතු තිත (Live Dot)
-                   'drawbox=x=1120:y=34:w=12:h=12:color=red@0.9:t=fill',
+                                  '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,' +
+                   // 1. උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
+                   'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
+                   'drawbox=x=1050:y=10:w=200:h=60:color=red@0.8:t=2,' +
+                   'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
+                   'drawtext=text=SL:fontcolor=red:fontsize=24:x=1145:y=24,' +
+                   'drawbox=x=1190:y=34:w=12:h=12:color=red@0.9:t=fill,' +
+                   
+                   // 2. වීඩියෝ එකේ යට කොටසින් පෙන්වන 'SHARE NOW' Watermark එක (ටිකක් පෙනෙන නොපෙනෙන ගානට සුදු පාටින්)
+                   'drawtext=text=SHARE\\ NOW:fontcolor=white@0.35:fontsize=22:x=(w-text_w)/2:y=h-50',
             
+
             // 2. ඕඩියෝ ෆිල්ටර්: Pitch එක 1.05 සිට 1.07 අතර අගයක තැබීම ප්‍රමාණවත් (හඬ විකෘති නොවී බොට්ස්ලා මඟහරියි)
             '-af', 'rubberband=pitch=1.12:tempo=1.0',
 
