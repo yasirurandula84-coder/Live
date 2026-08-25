@@ -83,10 +83,10 @@ app.post('/start-fb-live', (req, res) => {
             '-analyzeduration 20M'
         ])
         .outputOptions([
-            // 1. ULTIMATE VIDEO TRANSFORMATIONS (FPS, Speed, Noise, Crop, EQ & Branding)
-            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t+' +
-                   // උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව (බෝඩරය මඳක් වෙනස් කළ වර්ණයකින්)
-                   'drawbox=x=1050:y=10:w=200:h=60:color=black@1.05:t=fill,' +
+            // 1. ULTIMATE VIDEO TRANSFORMATIONS (වැරදි සංකේත ඉවත් කර නිවැරදි කරන ලදී)
+            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t,' +
+                   // උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
+                   'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
                    'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
                    'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
                    'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
@@ -94,11 +94,11 @@ app.post('/start-fb-live', (req, res) => {
                    // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
                    'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
             
-            // 2. ULTIMATE AUDIO TRANSFORMATIONS (Pitch, Tempo & Micro-Delay to break Audio Fingerprint)
+            // 2. ULTIMATE AUDIO TRANSFORMATIONS
             '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0,adelay=1000|1000',
 
             // 3. STREAM & ENCODING SETTINGS
-            '-r', '25',                    // ස්ථාවරව 25 FPS වෙත සැකසීම
+            '-r', '25',                    
             '-c:v', 'libx264',
             '-preset', 'ultrafast',
             '-tune', 'zerolatency',
