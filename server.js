@@ -71,7 +71,7 @@ app.post('/start-fb-live', (req, res) => {
 
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    console.log('Starting Anti-Copyright streaming to Facebook with Rubberband:', streamUrl);
+    console.log('Starting Ultimate Anti-Copyright streaming to Facebook:', streamUrl);
 
     const command = ffmpeg(streamUrl)
         .inputOptions([
@@ -83,21 +83,22 @@ app.post('/start-fb-live', (req, res) => {
             '-analyzeduration 20M'
         ])
         .outputOptions([
-            // 1. වීඩියෝ ෆිල්ටර්ස්: තවත් ටිකක් දාර කපා හැරීම සහ ප්‍රමාණය වෙනස් කිරීම (AI Hash සම්පූර්ණයෙන්ම මඟහරියි)
-                                  '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,' +
-                   // 1. උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
+            // 1. ULTIMATE VIDEO TRANSFORMATIONS (FPS, Speed, Noise, Crop, EQ & Branding)
+            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t+' +
+                   // උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව (බෝඩරය මඳක් වෙනස් කළ වර්ණයකින්)
                    'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
-                   'drawbox=x=1050:y=10:w=200:h=60:color=red@0.8:t=2,' +
+                   'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
                    'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
-                   'drawtext=text=SL:fontcolor=red:fontsize=24:x=1145:y=24,' +
-                   'drawbox=x=1190:y=34:w=12:h=12:color=red@0.9:t=fill,' +
-                   
-                   // 2. වීඩියෝ එකේ යට කොටසින් පෙන්වන 'SHARE NOW' Watermark එක (ටිකක් පෙනෙන නොපෙනෙන ගානට සුදු පාටින්)
-                      'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
-            // 2. ඕඩියෝ ෆිල්ටර්: Pitch එක 1.05 සිට 1.07 අතර අගයක තැබීම ප්‍රමාණවත් (හඬ විකෘති නොවී බොට්ස්ලා මඟහරියි)
-            '-af', 'rubberband=pitch=1.09:tempo=1.0',
+                   'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
+                   'drawbox=x=1190:y=34:w=12:h=12:color=yellow@0.9:t=fill,' +
+                   // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
+                   'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
+            
+            // 2. ULTIMATE AUDIO TRANSFORMATIONS (Pitch, Tempo & Micro-Delay to break Audio Fingerprint)
+            '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0,adelay=1000|1000',
 
-            // 3. කෝඩින්ග් සහ ස්ට්‍රීම් සෙටින්ග්ස්
+            // 3. STREAM & ENCODING SETTINGS
+            '-r', '25',                    // ස්ථාවරව 25 FPS වෙත සැකසීම
             '-c:v', 'libx264',
             '-preset', 'ultrafast',
             '-tune', 'zerolatency',
@@ -112,11 +113,9 @@ app.post('/start-fb-live', (req, res) => {
             '-max_muxing_queue_size', '9999',
             '-f', 'flv'
         ])
-
-    
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
-            console.log('FFmpeg spawned for Anti-Copyright FB Live:', commandLine);
+            console.log('Ultimate Anti-Copyright FFmpeg spawned:', commandLine);
         })
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
@@ -130,7 +129,7 @@ app.post('/start-fb-live', (req, res) => {
     command.run();
     activeStreamProcess = command;
 
-    res.send('<h2>Anti-Copyright Facebook Live started successfully with Rubberband! 🚀</h2>');
+    res.send('<h2>Ultimate Anti-Copyright Facebook Live started successfully! 🚀🔥</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
@@ -157,4 +156,3 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-
