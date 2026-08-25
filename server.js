@@ -83,34 +83,35 @@ app.post('/start-fb-live', (req, res) => {
             '-analyzeduration 20M'
         ])
         .outputOptions([
-            // 1. ULTIMATE HEAVY TRANSFORMATIONS (කොමා ලකුණු පමණක් පාවිච්චි කර නිවැරදි කරන ලදී)
-            '-vf', 'scale=1440:810,crop=1280:720:(in_w-1280)/2:(in_h-720)/2,setpts=0.998*PTS,eq=saturation=2.3:brightness=0.03:contrast=2.4,noise=alls=6:allf=t,' +
+            // 1. ULTIMATE VIDEO TRANSFORMATIONS (වැරදි සංකේත ඉවත් කර නිවැරදි කරන ලදී)
+            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=2.15:brightness=0.02:contrast=2.28,noise=alls=4:allf=t,' +
+                   // උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
                    'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
                    'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
                    'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
                    'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
                    'drawbox=x=1190:y=34:w=12:h=12:color=yellow@0.9:t=fill,' +
+                   // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
                    'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
             
             // 2. ULTIMATE AUDIO TRANSFORMATIONS
             '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0,adelay=1000|1000',
-
-            // 3. STREAM & ENCODING SETTINGS (අන්තිම අක්ෂර කැඩී යාම වැළැක්වීම සඳහා සම්පූර්ණ කරන ලදී)
+            // 3. STREAM & ENCODING SETTINGS (Fixed for Stability)
             '-r', '25',                    
             '-c:v', 'libx264',
-            '-preset', 'veryfast',         
+            '-preset', 'veryfast',         // ultrafast වෙනුවට veryfast දමන්න
             '-tune', 'zerolatency',
-            '-b:v', '1000k',               
+            '-b:v', '1000k',               // බිට්රේට් එක තරමක් අඩු කරන ලදී
             '-maxrate', '1500k',
             '-bufsize', '3000k',
             '-pix_fmt', 'yuv420p',
-            '-g', '50',                    
+            '-g', '50',                    // Keyframe интервал එක වැඩි කරන ලදී
             '-c:a', 'aac',
             '-b:a', '128k',
             '-ar', '44100',
             '-max_muxing_queue_size', '9999',
             '-f', 'flv'
-        ])
+])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
             console.log('Ultimate Anti-Copyright FFmpeg spawned:', commandLine);
@@ -129,7 +130,6 @@ app.post('/start-fb-live', (req, res) => {
 
     res.send('<h2>Ultimate Anti-Copyright Facebook Live started successfully! 🚀🔥</h2>');
 });
-
 
 // ලයිව් එක නතර කරන්න රූට් එක
 app.get('/stop-live', (logReq, res) => {
