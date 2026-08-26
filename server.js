@@ -58,9 +58,24 @@ app.get('/proxy', async (req, res) => {
 
 // ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-fb-live', (req, res) => {
+    const streamKey = req.body.streamKey;
+    if (!streamKey) {
+        return res.status(400).send('Stream Key required!');
+    }
+
+    if (activeStreamProcess) {
+        return res.status(400).send('A stream is already running! Stop it first.');
+    }
+
+    // streamUrl එක මෙතැනදී නිවැරදිව ඩිෆයින් කරන ලදී
+    const streamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
+    const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
+
+    console.log('Starting Robust streaming to Facebook:', streamUrl);
+
     const command = ffmpeg(streamUrl)
         .inputOptions([
-            '-stream_loop -1',          // මූලාශ්‍ර ලින්ක් එක කෙළවර වුණොත් ඔටෝමැටික්ම ආපහු පටන් ගැනීම (Loop)
+            '-stream_loop -1',          // ලින්ක් එක ඉවර වුණොත් ඔටෝ ලූප් වීම
             '-reconnect 1',
             '-reconnect_streamed 1',
             '-reconnect_delay_max 5',
@@ -83,9 +98,9 @@ app.post('/start-fb-live', (req, res) => {
             // 3. STABLE STREAM & ENCODING SETTINGS
             '-r', '25',                    
             '-c:v', 'libx264',
-            '-preset', 'ultrafast',        // ultrafast දමා කේතීකරණය වේගවත් කිරීම
+            '-preset', 'ultrafast',
             '-tune', 'zerolatency',
-            '-b:v', '1000k',               // ප්‍රශස්ත බිට්රේට් අගයක්
+            '-b:v', '1000k',
             '-maxrate', '1400k',
             '-bufsize', '2800k',
             '-pix_fmt', 'yuv420p',
@@ -101,21 +116,19 @@ app.post('/start-fb-live', (req, res) => {
             console.log('Robust FFmpeg spawned:', commandLine);
         })
         .on('error', (err) => {
-            console.error('Streaming error (Attempting to recover):', err.message);
-            // මෙතැනදී activeStreamProcess එක එකපාරටම null නොකර, කනෙක්ෂන් එක නැවත උත්සාහ කිරීමට සැලැස්විය හැක
+            console.error('Streaming error:', err.message);
+            activeStreamProcess = null;
         })
         .on('end', () => {
             console.log('Streaming finished.');
             activeStreamProcess = null;
         });
 
-
     command.run();
     activeStreamProcess = command;
 
-    res.send('<h2>Optimized Facebook Live started successfully! 🚀🔥</h2>');
+    res.send('<h2>Facebook Live started successfully with stream loop! 🚀🔥</h2>');
 });
-
 
 // ලයිව් එක නතර කරන්න රූට් එක
 app.get('/stop-live', (logReq, res) => {
