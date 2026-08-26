@@ -83,30 +83,20 @@ app.post('/start-fb-live', (req, res) => {
             '-analyzeduration 20M'
         ])
         .outputOptions([
-            // 1. ULTIMATE VIDEO TRANSFORMATIONS & PROFESSIONAL SPORTS WATERMARK BOX
+            // 1. ULTIMATE VIDEO TRANSFORMATIONS (ස්ලෑෂ් සහ ස්ේස් ඉවත් කර ආරක්ෂිතව සකස් කරන ලදී)
             '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t,' +
-                   
-                   // --- ප්‍රොෆෙෂනල් ස්පෝට්ස් ලෝගෝ කොටුව (Professional Sports Box) ---
-                   // පසුබිම් කළු කොටුව (Background Box - Top Right)
                    'drawbox=x=1020:y=15:w=240:h=55:color=black@0.75:t=fill,' +
-                   // වටේට සිහින් බෝඩරය (Border Line - Yellow/Gold)
                    'drawbox=x=1020:y=15:w=240:h=55:color=yellow@0.9:t=2,' +
-                   // 'LIVE' අකුරු (රතු පාටින් හෝ සුදු පාටින්)
                    'drawtext=text=LIVE:fontcolor=white:fontsize=22:x=1040:y=31,' +
-                   // මැද තියෙන සිරස් ඉරක් (|)
-                   'drawtext=text=\\|:fontcolor=yellow:fontsize=22:x=1100:y=31,' +
-                   // 'SL HD' හෝ ඔබ කැමති නම
-                   'drawtext=text=SL\\ HD:fontcolor=yellow:fontsize=22:x=1125:y=31,' +
-                   // ලයිව් එක පෙන්වන පොඩි රවුම් කොටුවක්/ඩොට් එකක් (Blinking style box)
+                   'drawtext=text=-:fontcolor=yellow:fontsize=22:x=1100:y=31,' +
+                   'drawtext=text=SL-HD:fontcolor=yellow:fontsize=22:x=1125:y=31,' +
                    'drawbox=x=1210:y=33:w=18:h=18:color=red@0.9:t=fill,' +
-
-                   // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
                    'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
             
             // 2. ULTIMATE AUDIO TRANSFORMATIONS
             '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0,adelay=1000|1000',
 
-            // 3. STREAM & ENCODING SETTINGS
+            // 3. STREAM & ENCODING SETTINGS (අන්තිම අක්ෂර කැඩී යාම වැළැක්වීම සඳහා සම්පූර්ණ කරන ලදී)
             '-r', '25',                    
             '-c:v', 'libx264',
             '-preset', 'ultrafast',
@@ -140,6 +130,7 @@ app.post('/start-fb-live', (req, res) => {
 
     res.send('<h2>Ultimate Anti-Copyright Facebook Live started successfully! 🚀🔥</h2>');
 });
+
 
 
 // ලයිව් එක නතර කරන්න රූට් එක
