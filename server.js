@@ -94,7 +94,7 @@ app.post('/start-fb-live', (req, res) => {
                 '-vf', 'crop=in_w-20:in_h-20:10:10,scale=1280:720,eq=saturation=1.1:contrast=1.12,drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55',
                 
                 // 2. AUDIO TRANSFORMATIONS
-                '-af', 'rubberband=pitch=1.08',
+                '-af', 'asetrate=44100*1.03,aresample=44100',
 
                 // 3. STABLE STREAM & ENCODING SETTINGS
                 '-threads', '0',
