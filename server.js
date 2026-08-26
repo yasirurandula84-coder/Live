@@ -89,28 +89,27 @@ app.post('/start-fb-live', (req, res) => {
                 '-probesize 50M',
                 '-analyzeduration 20M'
             ])
-                  .outputOptions([
-            // කොපිറයිට් වැළැක්වීමට අත්‍යවශ්‍ය ෆිල්ටර්ස් (CPU බර අවම කර ප්‍රශස්ත කරන ලදී)
+                          .outputOptions([
+            // 1. අත්‍යවශ්‍ය කොපිප්‍රොටෙක්ට් ෆිල්ටර්ස් පමණක් (Noise වැනි බර වැඩි දේ ඉවත් කරන ලදී)
             '-sws_flags', 'fast_bilinear',
-            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.1:contrast=1.15,' +
+            '-vf', 'crop=in_w-20:in_h-20:10:10,scale=1280:720,eq=saturation=1.1:contrast=1.12,' +
                    'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
                    'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
                    'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
-                   'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
-                   'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
+                   'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55',
             
-            // ශ්‍රව්‍ය වෙනස්කම් (කෙළින්ම ශබ්දය මඳක් වෙනස් කර කොපිෆ්රී කිරීමට)
-            '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0',
+            // 2. ශ්‍රව්‍ය වෙනස්කම් (අත්‍යවශ්‍ය පිච් වෙනස පමණක්)
+            '-af', 'rubberband=pitch=1.08',
 
-            // ස්ට්‍රීම් එක ස්මූත් කිරීමට සහ CPU බර බෙදා හැරීමට 
-            '-threads', '4',               // සර්වර් කෝර්ස් භාවිතය වැඩි කිරීම
+            // 3. සර්වර් ලෝඩ් එක අවම කරන ultra-fast සෙටිංස්
+            '-threads', '0',               // සියලුම CPU cores ස්වයංක්‍රීයව භාවිත කිරීම
             '-r', '25',                    
             '-c:v', 'libx264',
             '-preset', 'ultrafast',        
             '-tune', 'zerolatency',
-            '-b:v', '1000k',               
-            '-maxrate', '1400k',
-            '-bufsize', '2800k',
+            '-b:v', '900k',                // සර්වර් බර අඩු කිරීමට බිට්රේට් එක 900k ලෙස තබා ගැනීම
+            '-maxrate', '1200k',
+            '-bufsize', '2400k',
             '-pix_fmt', 'yuv420p',
             '-g', '50',                    
             '-c:a', 'aac',
@@ -119,6 +118,7 @@ app.post('/start-fb-live', (req, res) => {
             '-max_muxing_queue_size', '9999',
             '-f', 'flv'
         ])
+
 
             .output(fbRtmpUrl)
             .on('start', (commandLine) => {
