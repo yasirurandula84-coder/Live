@@ -88,31 +88,35 @@ app.post('/start-fb-live', (req, res) => {
                 '-probesize 50M',
                 '-analyzeduration 20M'
             ])
-            .outputOptions([
-                // 1. SAFE & LIGHTWEIGHT VIDEO FILTERS (කැඩී යාම් සිදු නොවන පරිදි එකම පේළියක සකස් කරන ලදී)
-                '-sws_flags', 'fast_bilinear',
-                '-vf', 'crop=in_w-20:in_h-20:10:10,scale=1280:720,eq=saturation=1.1:contrast=1.12,drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55',
-                
-                // 2. AUDIO TRANSFORMATIONS
-                '-af', 'asetrate=44100*1.03,aresample=44100',
+                    .outputOptions([
+            // 1. සැහැල්ලු වීඩියෝ ෆිල්ටර්ස් පමණක් (Watermark සහ Scale)
+            '-sws_flags', 'fast_bilinear',
+            '-vf', 'scale=1278:720,drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55',
+            
+            // 2. ශබ්දය ලැග් වීම සම්පූර්ණයෙන්ම වැළැක්වීමට පිච් ෆිල්ටර් ඉවත් කර පිරිසිදු aac ඕඩියෝ පමණක් තැබීම
+            // (කොපිප්‍රොටෙක්ට් වළක්වා ගැනීමට පහතින් ඇති aresample සහ async භාවිතා වේ)
+            '-af', 'aresample=async=1000',
 
-                // 3. STABLE STREAM & ENCODING SETTINGS
-                '-threads', '0',
-                '-r', '25',                    
-                '-c:v', 'libx264',
-                '-preset', 'ultrafast',        
-                '-tune', 'zerolatency',
-                '-b:v', '900k',                
-                '-maxrate', '1200k',
-                '-bufsize', '2400k',
-                '-pix_fmt', 'yuv420p',
-                '-g', '50',                    
-                '-c:a', 'aac',
-                '-b:a', '96k',
-                '-ar', '44100',
-                '-max_muxing_queue_size', '9999',
-                '-f', 'flv'
-            ])
+            // 3. වීඩියෝ සහ ඕඩියෝ එකම ස්පීඩ් එකක තබා ගැනීමට දැඩි නීති (A/V Hard Sync)
+            '-fps_mode', 'cfr',            
+            '-async', '1',                 
+            '-threads', '0',               
+            '-r', '25',                    
+            '-c:v', 'libx264',
+            '-preset', 'ultrafast',        
+            '-tune', 'zerolatency',
+            '-b:v', '900k',                
+            '-maxrate', '1200k',
+            '-bufsize', '2400k',
+            '-pix_fmt', 'yuv420p',
+            '-g', '50',                    
+            '-c:a', 'aac',
+            '-b:a', '96k',
+            '-ar', '44100',
+            '-max_muxing_queue_size', '9999',
+            '-f', 'flv'
+        ])
+
             .output(fbRtmpUrl)
             .on('start', (commandLine) => {
                 console.log('FFmpeg Auto-Recovery Stream spawned:', commandLine);
