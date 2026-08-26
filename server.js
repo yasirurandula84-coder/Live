@@ -73,7 +73,6 @@ app.post('/start-fb-live', (req, res) => {
     console.log('Starting Auto-Recovery Live streaming to Facebook:', streamUrl);
 
     function startStream() {
-        // Stop any orphan process if exists
         if (activeStreamProcess) {
             try { activeStreamProcess.kill('SIGKILL'); } catch(e) {}
             activeStreamProcess = null;
@@ -81,7 +80,7 @@ app.post('/start-fb-live', (req, res) => {
 
         const command = ffmpeg(streamUrl)
             .inputOptions([
-                '-re',                      // සජීවී වේගයට (Real-time) ඩේටා ලබා ගැනීම
+                '-re',
                 '-reconnect 1',
                 '-reconnect_streamed 1',
                 '-reconnect_delay_max 5',
@@ -89,44 +88,37 @@ app.post('/start-fb-live', (req, res) => {
                 '-probesize 50M',
                 '-analyzeduration 20M'
             ])
-                          .outputOptions([
-            // 1. අත්‍යවශ්‍ය කොපිප්‍රොටෙක්ට් ෆිල්ටර්ස් පමණක් (Noise වැනි බර වැඩි දේ ඉවත් කරන ලදී)
-            '-sws_flags', 'fast_bilinear',
-            '-vf', 'crop=in_w-20:in_h-20:10:10,scale=1280:720,eq=saturation=1.1:contrast=1.12,' +
-                   'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
-                   'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
-                   'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
-                   'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55',
-            
-            // 2. ශ්‍රව්‍ය වෙනස්කම් (අත්‍යවශ්‍ය පිච් වෙනස පමණක්)
-            '-af', 'rubberband=pitch=1.08',
+            .outputOptions([
+                // 1. SAFE & LIGHTWEIGHT VIDEO FILTERS (කැඩී යාම් සිදු නොවන පරිදි එකම පේළියක සකස් කරන ලදී)
+                '-sws_flags', 'fast_bilinear',
+                '-vf', 'crop=in_w-20:in_h-20:10:10,scale=1280:720,eq=saturation=1.1:contrast=1.12,drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55',
+                
+                // 2. AUDIO TRANSFORMATIONS
+                '-af', 'rubberband=pitch=1.08',
 
-            // 3. සර්වර් ලෝඩ් එක අවම කරන ultra-fast සෙටිංස්
-            '-threads', '0',               // සියලුම CPU cores ස්වයංක්‍රීයව භාවිත කිරීම
-            '-r', '25',                    
-            '-c:v', 'libx264',
-            '-preset', 'ultrafast',        
-            '-tune', 'zerolatency',
-            '-b:v', '900k',                // සර්වර් බර අඩු කිරීමට බිට්රේට් එක 900k ලෙස තබා ගැනීම
-            '-maxrate', '1200k',
-            '-bufsize', '2400k',
-            '-pix_fmt', 'yuv420p',
-            '-g', '50',                    
-            '-c:a', 'aac',
-            '-b:a', '96k',
-            '-ar', '44100',
-            '-max_muxing_queue_size', '9999',
-            '-f', 'flv'
-        ])
-
-
+                // 3. STABLE STREAM & ENCODING SETTINGS
+                '-threads', '0',
+                '-r', '25',                    
+                '-c:v', 'libx264',
+                '-preset', 'ultrafast',        
+                '-tune', 'zerolatency',
+                '-b:v', '900k',                
+                '-maxrate', '1200k',
+                '-bufsize', '2400k',
+                '-pix_fmt', 'yuv420p',
+                '-g', '50',                    
+                '-c:a', 'aac',
+                '-b:a', '96k',
+                '-ar', '44100',
+                '-max_muxing_queue_size', '9999',
+                '-f', 'flv'
+            ])
             .output(fbRtmpUrl)
             .on('start', (commandLine) => {
                 console.log('FFmpeg Auto-Recovery Stream spawned:', commandLine);
             })
             .on('error', (err) => {
                 console.error('Streaming error encountered:', err.message);
-                // එරෝ එකක් ආවොත් තත්පර 3කින් ස්ට්‍රීම් එක නැවත ආරම්භ කිරීමට උත්සාහ කිරීම
                 if (activeStreamProcess) {
                     setTimeout(() => {
                         console.log('Attempting to restart stream after error...');
@@ -136,7 +128,6 @@ app.post('/start-fb-live', (req, res) => {
             })
             .on('end', () => {
                 console.log('Streaming finished. Restarting automatically...');
-                // ස්ට්‍රීම් එක අවසන් වුණොත් ස්වයංක්‍රීයව නැවත පටන් ගැනීම
                 if (activeStreamProcess) {
                     setTimeout(() => {
                         startStream();
@@ -150,8 +141,9 @@ app.post('/start-fb-live', (req, res) => {
 
     startStream();
 
-    res.send('<h2>Auto-Recovery Facebook Live started successfully! 🚀🔥 (Stream will auto-reconnect if dropped)</h2>');
+    res.send('<h2>Auto-Recovery Facebook Live started successfully! 🚀🔥</h2>');
 });
+
 
 
 // ලයිව් එක නතර කරන්න රූට් එක
