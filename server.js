@@ -83,14 +83,21 @@ app.post('/start-fb-live', (req, res) => {
             '-analyzeduration 20M'
         ])
         .outputOptions([
-            // 1. ULTIMATE VIDEO TRANSFORMATIONS (ස්ලෑෂ් සහ ස්ේස් ඉවත් කර ආරක්ෂිතව සකස් කරන ලදී)
+          .outputOptions([
+            // 1. ULTIMATE VIDEO TRANSFORMATIONS & SONY-STYLE SQUARE LOGO BOX
             '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t,' +
-                   'drawbox=x=1020:y=15:w=240:h=55:color=black@0.75:t=fill,' +
-                   'drawbox=x=1020:y=15:w=240:h=55:color=yellow@0.9:t=2,' +
-                   'drawtext=text=LIVE:fontcolor=white:fontsize=22:x=1040:y=31,' +
-                   'drawtext=text=-:fontcolor=yellow:fontsize=22:x=1100:y=31,' +
-                   'drawtext=text=SL-HD:fontcolor=yellow:fontsize=22:x=1125:y=31,' +
-                   'drawbox=x=1210:y=33:w=18:h=18:color=red@0.9:t=fill,' +
+                   
+                   // --- SONY STYLE SQUARE BOX (සමචතුරස්‍ර හැඩැති ලෝගෝ කොටුව - Top Right) ---
+                   // පසුබිම සඳහා තද පැහැති හෝ ඝනකම් හතරස් කොටුවක් (Square Background Box)
+                   'drawbox=x=1140:y=15:w=100:h=65:color=black@0.85:t=fill,' +
+                   // වටේට සිහින් වර්ණවත් බෝඩරයක් (Border)
+                   'drawbox=x=1140:y=15:w=100:h=65:color=yellow@0.9:t=2,' +
+                   // උඩින් 'SONY' හෝ 'LIVE' කියන වචනය
+                   'drawtext=text=SONY:fontcolor=white:fontsize=18:x=1165:y=22,' +
+                   // යටින් චැනල් නම (TEN 1 හෝ SL) ගෝල්ඩ් පාටින්
+                   'drawtext=text=TEN-1:fontcolor=yellow:fontsize=20:x=1158:y=45,' +
+
+                   // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
                    'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
             
             // 2. ULTIMATE AUDIO TRANSFORMATIONS
