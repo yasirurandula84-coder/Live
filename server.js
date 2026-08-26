@@ -67,68 +67,89 @@ app.post('/start-fb-live', (req, res) => {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    // streamUrl එක මෙතැනදී නිවැරදිව ඩිෆයින් කරන ලදී
     const streamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    console.log('Starting Robust streaming to Facebook:', streamUrl);
+    console.log('Starting Auto-Recovery Live streaming to Facebook:', streamUrl);
 
-    const command = ffmpeg(streamUrl)
-        .inputOptions([
-            '-stream_loop -1',          // ලින්ක් එක ඉවර වුණොත් ඔටෝ ලූප් වීම
-            '-reconnect 1',
-            '-reconnect_streamed 1',
-            '-reconnect_delay_max 5',
-            '-fflags +discardcorrupt+genpts+nobuffer',
-            '-probesize 50M',
-            '-analyzeduration 20M'
-        ])
-        .outputOptions([
-            // 1. VIDEO TRANSFORMATIONS & WATERMARK BOX
-            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,noise=alls=3:allf=t,' +
-                   'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
-                   'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
-                   'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
-                   'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
-                   'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
-            
-            // 2. AUDIO TRANSFORMATIONS
-            '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0',
-
-            // 3. STABLE STREAM & ENCODING SETTINGS
-            '-r', '25',                    
-            '-c:v', 'libx264',
-            '-preset', 'ultrafast',
-            '-tune', 'zerolatency',
-            '-b:v', '1000k',
-            '-maxrate', '1400k',
-            '-bufsize', '2800k',
-            '-pix_fmt', 'yuv420p',
-            '-g', '50',                    
-            '-c:a', 'aac',
-            '-b:a', '96k',
-            '-ar', '44100',
-            '-max_muxing_queue_size', '9999',
-            '-f', 'flv'
-        ])
-        .output(fbRtmpUrl)
-        .on('start', (commandLine) => {
-            console.log('Robust FFmpeg spawned:', commandLine);
-        })
-        .on('error', (err) => {
-            console.error('Streaming error:', err.message);
+    function startStream() {
+        // Stop any orphan process if exists
+        if (activeStreamProcess) {
+            try { activeStreamProcess.kill('SIGKILL'); } catch(e) {}
             activeStreamProcess = null;
-        })
-        .on('end', () => {
-            console.log('Streaming finished.');
-            activeStreamProcess = null;
-        });
+        }
 
-    command.run();
-    activeStreamProcess = command;
+        const command = ffmpeg(streamUrl)
+            .inputOptions([
+                '-re',                      // සජීවී වේගයට (Real-time) ඩේටා ලබා ගැනීම
+                '-reconnect 1',
+                '-reconnect_streamed 1',
+                '-reconnect_delay_max 5',
+                '-fflags +discardcorrupt+genpts+nobuffer',
+                '-probesize 50M',
+                '-analyzeduration 20M'
+            ])
+            .outputOptions([
+                // 1. VIDEO TRANSFORMATIONS & WATERMARK BOX
+                '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,noise=alls=3:allf=t,' +
+                       'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
+                       'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
+                       'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
+                       'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
+                       'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
+                
+                // 2. AUDIO TRANSFORMATIONS
+                '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0',
 
-    res.send('<h2>Facebook Live started successfully with stream loop! 🚀🔥</h2>');
+                // 3. STABLE STREAM & ENCODING SETTINGS
+                '-r', '25',                    
+                '-c:v', 'libx264',
+                '-preset', 'ultrafast',
+                '-tune', 'zerolatency',
+                '-b:v', '1000k',
+                '-maxrate', '1400k',
+                '-bufsize', '2800k',
+                '-pix_fmt', 'yuv420p',
+                '-g', '50',                    
+                '-c:a', 'aac',
+                '-b:a', '96k',
+                '-ar', '44100',
+                '-max_muxing_queue_size', '9999',
+                '-f', 'flv'
+            ])
+            .output(fbRtmpUrl)
+            .on('start', (commandLine) => {
+                console.log('FFmpeg Auto-Recovery Stream spawned:', commandLine);
+            })
+            .on('error', (err) => {
+                console.error('Streaming error encountered:', err.message);
+                // එරෝ එකක් ආවොත් තත්පර 3කින් ස්ට්‍රීම් එක නැවත ආරම්භ කිරීමට උත්සාහ කිරීම
+                if (activeStreamProcess) {
+                    setTimeout(() => {
+                        console.log('Attempting to restart stream after error...');
+                        startStream();
+                    }, 3000);
+                }
+            })
+            .on('end', () => {
+                console.log('Streaming finished. Restarting automatically...');
+                // ස්ට්‍රීම් එක අවසන් වුණොත් ස්වයංක්‍රීයව නැවත පටන් ගැනීම
+                if (activeStreamProcess) {
+                    setTimeout(() => {
+                        startStream();
+                    }, 2000);
+                }
+            });
+
+        command.run();
+        activeStreamProcess = command;
+    }
+
+    startStream();
+
+    res.send('<h2>Auto-Recovery Facebook Live started successfully! 🚀🔥 (Stream will auto-reconnect if dropped)</h2>');
 });
+
 
 // ලයිව් එක නතර කරන්න රූට් එක
 app.get('/stop-live', (logReq, res) => {
