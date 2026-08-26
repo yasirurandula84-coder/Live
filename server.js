@@ -82,7 +82,6 @@ app.post('/start-fb-live', (req, res) => {
             '-probesize 50M',
             '-analyzeduration 20M'
         ])
-        .outputOptions([
           .outputOptions([
             // 1. ULTIMATE VIDEO TRANSFORMATIONS & SONY-STYLE SQUARE LOGO BOX
             '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t,' +
@@ -109,10 +108,10 @@ app.post('/start-fb-live', (req, res) => {
             '-preset', 'ultrafast',
             '-tune', 'zerolatency',
             '-b:v', '1200k',
-            '-maxrate', '1800k',
+            '-maxrate', '1600k',
             '-bufsize', '3000k',
             '-pix_fmt', 'yuv420p',
-            '-g', '30',
+            '-g', '40',
             '-c:a', 'aac',
             '-b:a', '128k',
             '-ar', '44100',
