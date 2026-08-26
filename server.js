@@ -4,8 +4,6 @@ const fetch = require('node-fetch');
 const http = require('http');
 const { Server } = require('socket.io');
 const ffmpeg = require('fluent-ffmpeg');
-const { execSync, spawn } = require('child_process');
-const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -16,18 +14,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
-// සර්වර් එක ඔන් වෙනකොට yt-dlp නැත්නම් එය ස්වයංක්‍රීයව ඩවුන්ලෝඩ් කරගැනීම
-const ytDlpPath = path.join(__dirname, 'yt-dlp');
-if (!fs.existsSync(ytDlpPath)) {
-    console.log('Downloading yt-dlp binary for the server...');
-    try {
-        execSync('curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp && chmod a+rx yt-dlp');
-        console.log('yt-dlp downloaded successfully!');
-    } catch (err) {
-        console.error('Failed to download yt-dlp:', err.message);
-    }
-}
 
 let activeStreamProcess = null;
 
@@ -70,11 +56,11 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
-// ෆේස්බුක් ලින්ක් එක දීලා ලයිව් එක පටන් ගන්න රූට් එක
+// ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-fb-live', (req, res) => {
     const streamKey = req.body.streamKey;
-    const rawUrl = req.body.sourceUrl || "https://www.facebook.com/share/v/19HgW4nBRn/";
     
+    const streamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
     if (!streamKey) {
         return res.status(400).send('Stream Key required!');
     }
@@ -83,88 +69,67 @@ app.post('/start-fb-live', (req, res) => {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    // Facebook ලින්ක් එකෙන් Video ID එක වෙන් කරගෙන Embed ලින්ක් එකක් බවට හැරවීම
-    let fbVideoUrl = rawUrl;
-    const match = rawUrl.match(/\/videos\/(\d+)/) || rawUrl.match(/v=(\d+)/);
-    if (match && match[1]) {
-        fbVideoUrl = `https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/video.php?v=${match[1]}`;
-    }
+    const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    res.send('<h2>Connecting to Facebook Live & Starting Restream... 🚀</h2>');
+    console.log('Starting Ultimate Anti-Copyright streaming to Facebook:', streamUrl);
 
-    console.log('Fetching direct stream link using Embed URL:', fbVideoUrl);
+    const command = ffmpeg(streamUrl)
+        .inputOptions([
+            '-reconnect 1',
+            '-reconnect_streamed 1',
+            '-reconnect_delay_max 5',
+            '-fflags +discardcorrupt+genpts',
+            '-probesize 50M',
+            '-analyzeduration 20M'
+        ])
+        .outputOptions([
+            // 1. ULTIMATE VIDEO TRANSFORMATIONS (වැරදි සංකේත ඉවත් කර නිවැරදි කරන ලදී)
+            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t,' +
+                   // උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
+                   'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
+                   'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
+                   'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
+                   'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
+                   'drawbox=x=1190:y=34:w=12:h=12:color=yellow@0.9:t=fill,' +
+                   // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
+                   'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
+            
+            // 2. ULTIMATE AUDIO TRANSFORMATIONS
+            '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0,adelay=1000|1000',
 
-    const ytdlpProcess = spawn(ytDlpPath, ['-g', fbVideoUrl]);
+            // 3. STREAM & ENCODING SETTINGS
+            '-r', '25',                    
+            '-c:v', 'libx264',
+            '-preset', 'ultrafast',
+            '-tune', 'zerolatency',
+            '-b:v', '1200k',
+            '-maxrate', '1800k',
+            '-bufsize', '3000k',
+            '-pix_fmt', 'yuv420p',
+            '-g', '30',
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-ar', '44100',
+            '-max_muxing_queue_size', '9999',
+            '-f', 'flv'
+        ])
+        .output(fbRtmpUrl)
+        .on('start', (commandLine) => {
+            console.log('Ultimate Anti-Copyright FFmpeg spawned:', commandLine);
+        })
+        .on('error', (err) => {
+            console.error('Streaming error:', err.message);
+            activeStreamProcess = null;
+        })
+        .on('end', () => {
+            console.log('Streaming finished.');
+            activeStreamProcess = null;
+        });
 
-    let directStreamUrl = '';
+    command.run();
+    activeStreamProcess = command;
 
-    ytdlpProcess.stdout.on('data', (data) => {
-        directStreamUrl += data.toString();
-    });
-
-    ytdlpProcess.stderr.on('data', (data) => {
-        console.error(`yt-dlp stderr: ${data}`);
-    });
-
-    ytdlpProcess.on('close', (code) => {
-        if (code !== 0 || !directStreamUrl.trim()) {
-            console.error('Failed to extract direct stream URL from Facebook link.');
-            return;
-        }
-
-        const streamUrlToUse = directStreamUrl.trim().split('\n')[0];
-        console.log('Successfully got Direct URL. Starting FFmpeg...');
-
-        const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
-
-        const command = ffmpeg(streamUrlToUse)
-            .inputOptions([
-                '-reconnect 1',
-                '-reconnect_streamed 1',
-                '-reconnect_delay_max 5',
-                '-fflags +discardcorrupt+genpts',
-                '-probesize 50M',
-                '-analyzeduration 20M'
-            ])
-            .outputOptions([
-                '-vf', 'scale=1280:720,setpts=0.998*PTS,eq=saturation=1.2:brightness=0.02:contrast=1.3,' +
-                       'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
-                       'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
-                       'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
-                       'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
-                       'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
-                '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0',
-                '-r', '25',                    
-                '-c:v', 'libx264',
-                '-preset', 'veryfast',         
-                '-tune', 'zerolatency',
-                '-b:v', '1000k',               
-                '-maxrate', '1500k',
-                '-bufsize', '3000k',
-                '-pix_fmt', 'yuv420p',
-                '-g', '50',                    
-                '-c:a', 'aac',
-                '-b:a', '128k',
-                '-ar', '44100',
-                '-max_muxing_queue_size', '9999',
-                '-f', 'flv'
-            ])
-            .output(fbRtmpUrl)
-            .on('start', (commandLine) => {
-                console.log('Restream FFmpeg spawned:', commandLine);
-            })
-            .on('error', (err) => {
-                console.error('Streaming error:', err.message);
-                activeStreamProcess = null;
-            })
-            .on('end', () => {
-                console.log('Streaming finished.');
-                activeStreamProcess = null;
-            });
-
-        command.run();
-        activeStreamProcess = command;
-    });
+    res.send('<h2>Ultimate Anti-Copyright Facebook Live started successfully! 🚀🔥</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
