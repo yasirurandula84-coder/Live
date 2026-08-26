@@ -58,31 +58,15 @@ app.get('/proxy', async (req, res) => {
 
 // ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-fb-live', (req, res) => {
-    const streamKey = req.body.streamKey;
-    
-    const streamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
-    if (!streamKey) {
-        return res.status(400).send('Stream Key required!');
-    }
-
-    if (activeStreamProcess) {
-        return res.status(400).send('A stream is already running! Stop it first.');
-    }
-
-    const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
-
-    console.log('Starting Optimized Anti-Copyright streaming to Facebook:', streamUrl);
-
     const command = ffmpeg(streamUrl)
         .inputOptions([
-            '-re',                      // සෝස් එක රියල්-ටයිම් ස්ට්‍රීම් එකක් ලෙස ස්ථාවරව ලබා ගැනීමට
+            '-stream_loop -1',          // මූලාශ්‍ර ලින්ක් එක කෙළවර වුණොත් ඔටෝමැටික්ම ආපහු පටන් ගැනීම (Loop)
             '-reconnect 1',
             '-reconnect_streamed 1',
             '-reconnect_delay_max 5',
             '-fflags +discardcorrupt+genpts+nobuffer',
-            '-flags low_delay',
-            '-probesize 32M',
-            '-analyzeduration 10M'
+            '-probesize 50M',
+            '-analyzeduration 20M'
         ])
         .outputOptions([
             // 1. VIDEO TRANSFORMATIONS & WATERMARK BOX
@@ -96,16 +80,16 @@ app.post('/start-fb-live', (req, res) => {
             // 2. AUDIO TRANSFORMATIONS
             '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0',
 
-            // 3. STABLE STREAM & ENCODING SETTINGS (බිට්රේට් එක ප්‍රශස්ත කර ලැග් වීම වළක්වන ලදී)
+            // 3. STABLE STREAM & ENCODING SETTINGS
             '-r', '25',                    
             '-c:v', 'libx264',
-            '-preset', 'veryfast',         // ultrafast වෙනුවට veryfast දීමෙන් ස්ට්‍රීම් එකේ ස්ථාවරත්වය වැඩි වේ
+            '-preset', 'ultrafast',        // ultrafast දමා කේතීකරණය වේගවත් කිරීම
             '-tune', 'zerolatency',
-            '-b:v', '900k',                // බිට්රේට් එක 900k දක්වා අඩු කර සර්වර් බර සැහැල්ලු කරන ලදී
-            '-maxrate', '1200k',
-            '-bufsize', '2500k',
+            '-b:v', '1000k',               // ප්‍රශස්ත බිට්රේට් අගයක්
+            '-maxrate', '1400k',
+            '-bufsize', '2800k',
             '-pix_fmt', 'yuv420p',
-            '-g', '50',                    // Keyframe interval (2 seconds for 25fps)
+            '-g', '50',                    
             '-c:a', 'aac',
             '-b:a', '96k',
             '-ar', '44100',
@@ -114,16 +98,17 @@ app.post('/start-fb-live', (req, res) => {
         ])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
-            console.log('Optimized FFmpeg spawned:', commandLine);
+            console.log('Robust FFmpeg spawned:', commandLine);
         })
         .on('error', (err) => {
-            console.error('Streaming error:', err.message);
-            activeStreamProcess = null;
+            console.error('Streaming error (Attempting to recover):', err.message);
+            // මෙතැනදී activeStreamProcess එක එකපාරටම null නොකර, කනෙක්ෂන් එක නැවත උත්සාහ කිරීමට සැලැස්විය හැක
         })
         .on('end', () => {
             console.log('Streaming finished.');
             activeStreamProcess = null;
         });
+
 
     command.run();
     activeStreamProcess = command;
