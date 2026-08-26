@@ -77,24 +77,20 @@ app.post('/start-fb-live', (req, res) => {
         .inputOptions([
             '-reconnect 1',
             '-reconnect_streamed 1',
-            '-reconnect_delay_max 5',
-            '-fflags +discardcorrupt+genpts',
+            '-reconnect_delay_max 10', // කනෙක්ෂන් ඩ්‍රොප් වීම වැළැක්වීමට කාල සීමාව වැඩි කරන ලදී
+            '-fflags +discardcorrupt+genpts+nobuffer',
             '-probesize 50M',
             '-analyzeduration 20M'
         ])
-          .outputOptions([
-            // 1. ULTIMATE VIDEO TRANSFORMATIONS & SONY-STYLE SQUARE LOGO BOX
+        .outputOptions([
+            // 1. ULTIMATE VIDEO TRANSFORMATIONS & BOX (y පරාමිතීන් වැඩි කර බොක්ස් එක ටිකක් පහළට ගන්නා ලදී)
             '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t,' +
                    
-                   // --- SONY STYLE SQUARE BOX (සමචතුරස්‍ර හැඩැති ලෝගෝ කොටුව - Top Right) ---
-                   // පසුබිම සඳහා තද පැහැති හෝ ඝනකම් හතරස් කොටුවක් (Square Background Box)
-                   'drawbox=x=1160:y=15:w=100:h=65:color=black@0.85:t=fill,' +
-                   // වටේට සිහින් වර්ණවත් බෝඩරයක් (Border)
-                   'drawbox=x=1140:y=15:w=100:h=65:color=yellow@0.9:t=2,' +
-                   // උඩින් 'SONY' හෝ 'LIVE' කියන වචනය
-                   'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1185:y=22,' +
-                   // යටින් චැනල් නම (TEN 1 හෝ SL) ගෝල්ඩ් පාටින්
-                   'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1178:y=45,' +
+                   // --- SONY STYLE SQUARE BOX (පහළට ගෙන යන ලදී: y=25) ---
+                   'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
+                   'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
+                   'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
+                   'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
 
                    // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
                    'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
@@ -102,7 +98,7 @@ app.post('/start-fb-live', (req, res) => {
             // 2. ULTIMATE AUDIO TRANSFORMATIONS
             '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0,adelay=1000|1000',
 
-            // 3. STREAM & ENCODING SETTINGS (අන්තිම අක්ෂර කැඩී යාම වැළැක්වීම සඳහා සම්පූර්ණ කරන ලදී)
+            // 3. STREAM & ENCODING SETTINGS
             '-r', '25',                    
             '-c:v', 'libx264',
             '-preset', 'ultrafast',
@@ -136,8 +132,6 @@ app.post('/start-fb-live', (req, res) => {
 
     res.send('<h2>Ultimate Anti-Copyright Facebook Live started successfully! 🚀🔥</h2>');
 });
-
-
 
 // ලයිව් එක නතර කරන්න රූට් එක
 app.get('/stop-live', (logReq, res) => {
