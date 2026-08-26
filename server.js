@@ -83,14 +83,23 @@ app.post('/start-fb-live', (req, res) => {
             '-analyzeduration 20M'
         ])
         .outputOptions([
-            // 1. ULTIMATE VIDEO TRANSFORMATIONS (වැරදි සංකේත ඉවත් කර නිවැරදි කරන ලදී)
+            // 1. ULTIMATE VIDEO TRANSFORMATIONS & PROFESSIONAL SPORTS WATERMARK BOX
             '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t,' +
-                   // උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
-                   'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
-                   'drawbox=x=1050:y=10:w=200:h=60:color=yellow@0.8:t=2,' +
-                   'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
-                   'drawtext=text=SL:fontcolor=yellow:fontsize=24:x=1145:y=24,' +
-                   'drawbox=x=1190:y=34:w=12:h=12:color=yellow@0.9:t=fill,' +
+                   
+                   // --- ප්‍රොෆෙෂනල් ස්පෝට්ස් ලෝගෝ කොටුව (Professional Sports Box) ---
+                   // පසුබිම් කළු කොටුව (Background Box - Top Right)
+                   'drawbox=x=1020:y=15:w=240:h=55:color=black@0.75:t=fill,' +
+                   // වටේට සිහින් බෝඩරය (Border Line - Yellow/Gold)
+                   'drawbox=x=1020:y=15:w=240:h=55:color=yellow@0.9:t=2,' +
+                   // 'LIVE' අකුරු (රතු පාටින් හෝ සුදු පාටින්)
+                   'drawtext=text=LIVE:fontcolor=white:fontsize=22:x=1040:y=31,' +
+                   // මැද තියෙන සිරස් ඉරක් (|)
+                   'drawtext=text=\\|:fontcolor=yellow:fontsize=22:x=1100:y=31,' +
+                   // 'SL HD' හෝ ඔබ කැමති නම
+                   'drawtext=text=SL\\ HD:fontcolor=yellow:fontsize=22:x=1125:y=31,' +
+                   // ලයිව් එක පෙන්වන පොඩි රවුම් කොටුවක්/ඩොට් එකක් (Blinking style box)
+                   'drawbox=x=1210:y=33:w=18:h=18:color=red@0.9:t=fill,' +
+
                    // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
                    'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
             
@@ -131,6 +140,7 @@ app.post('/start-fb-live', (req, res) => {
 
     res.send('<h2>Ultimate Anti-Copyright Facebook Live started successfully! 🚀🔥</h2>');
 });
+
 
 // ලයිව් එක නතර කරන්න රූට් එක
 app.get('/stop-live', (logReq, res) => {
