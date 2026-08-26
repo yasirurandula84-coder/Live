@@ -88,13 +88,13 @@ app.post('/start-fb-live', (req, res) => {
                    
                    // --- SONY STYLE SQUARE BOX (සමචතුරස්‍ර හැඩැති ලෝගෝ කොටුව - Top Right) ---
                    // පසුබිම සඳහා තද පැහැති හෝ ඝනකම් හතරස් කොටුවක් (Square Background Box)
-                   'drawbox=x=1140:y=15:w=100:h=65:color=black@0.85:t=fill,' +
+                   'drawbox=x=1160:y=15:w=100:h=65:color=black@0.85:t=fill,' +
                    // වටේට සිහින් වර්ණවත් බෝඩරයක් (Border)
                    'drawbox=x=1140:y=15:w=100:h=65:color=yellow@0.9:t=2,' +
                    // උඩින් 'SONY' හෝ 'LIVE' කියන වචනය
-                   'drawtext=text=SONY:fontcolor=white:fontsize=18:x=1165:y=22,' +
+                   'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1185:y=22,' +
                    // යටින් චැනල් නම (TEN 1 හෝ SL) ගෝල්ඩ් පාටින්
-                   'drawtext=text=TEN-1:fontcolor=yellow:fontsize=20:x=1158:y=45,' +
+                   'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1178:y=45,' +
 
                    // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
                    'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
