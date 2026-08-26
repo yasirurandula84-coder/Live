@@ -71,52 +71,50 @@ app.post('/start-fb-live', (req, res) => {
 
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    console.log('Starting Ultimate Anti-Copyright streaming to Facebook:', streamUrl);
+    console.log('Starting Optimized Anti-Copyright streaming to Facebook:', streamUrl);
 
     const command = ffmpeg(streamUrl)
         .inputOptions([
+            '-re',                      // සෝස් එක රියල්-ටයිම් ස්ට්‍රීම් එකක් ලෙස ස්ථාවරව ලබා ගැනීමට
             '-reconnect 1',
             '-reconnect_streamed 1',
-            '-reconnect_delay_max 10', // කනෙක්ෂන් ඩ්‍රොප් වීම වැළැක්වීමට කාල සීමාව වැඩි කරන ලදී
+            '-reconnect_delay_max 5',
             '-fflags +discardcorrupt+genpts+nobuffer',
-            '-probesize 50M',
-            '-analyzeduration 20M'
+            '-flags low_delay',
+            '-probesize 32M',
+            '-analyzeduration 10M'
         ])
         .outputOptions([
-            // 1. ULTIMATE VIDEO TRANSFORMATIONS & BOX (y පරාමිතීන් වැඩි කර බොක්ස් එක ටිකක් පහළට ගන්නා ලදී)
-            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.15:brightness=0.02:contrast=1.28,noise=alls=4:allf=t,' +
-                   
-                   // --- SONY STYLE SQUARE BOX (පහළට ගෙන යන ලදී: y=25) ---
+            // 1. VIDEO TRANSFORMATIONS & WATERMARK BOX
+            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,noise=alls=3:allf=t,' +
                    'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
                    'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
                    'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
                    'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
-
-                   // යටින් පෙන්වන 'SHARE_NOW' Watermark එක
                    'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
             
-            // 2. ULTIMATE AUDIO TRANSFORMATIONS
-            '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0,adelay=1000|1000',
+            // 2. AUDIO TRANSFORMATIONS
+            '-af', 'atempo=1.002,rubberband=pitch=1.09:tempo=1.0',
 
-            // 3. STREAM & ENCODING SETTINGS
+            // 3. STABLE STREAM & ENCODING SETTINGS (බිට්රේට් එක ප්‍රශස්ත කර ලැග් වීම වළක්වන ලදී)
             '-r', '25',                    
             '-c:v', 'libx264',
-            '-preset', 'ultrafast',
+            '-preset', 'veryfast',         // ultrafast වෙනුවට veryfast දීමෙන් ස්ට්‍රීම් එකේ ස්ථාවරත්වය වැඩි වේ
             '-tune', 'zerolatency',
-            '-b:v', '1200k',
-            '-maxrate', '1600k',
-            '-bufsize', '3000k',
+            '-b:v', '900k',                // බිට්රේට් එක 900k දක්වා අඩු කර සර්වර් බර සැහැල්ලු කරන ලදී
+            '-maxrate', '1200k',
+            '-bufsize', '2500k',
             '-pix_fmt', 'yuv420p',
-            '-g', '40',
+            '-g', '50',                    // Keyframe interval (2 seconds for 25fps)
             '-c:a', 'aac',
-            '-b:a', '128k',
+            '-b:a', '96k',
             '-ar', '44100',
             '-max_muxing_queue_size', '9999',
             '-f', 'flv'
         ])
         .output(fbRtmpUrl)
         .on('start', (commandLine) => {
-            console.log('Ultimate Anti-Copyright FFmpeg spawned:', commandLine);
+            console.log('Optimized FFmpeg spawned:', commandLine);
         })
         .on('error', (err) => {
             console.error('Streaming error:', err.message);
@@ -130,8 +128,9 @@ app.post('/start-fb-live', (req, res) => {
     command.run();
     activeStreamProcess = command;
 
-    res.send('<h2>Ultimate Anti-Copyright Facebook Live started successfully! 🚀🔥</h2>');
+    res.send('<h2>Optimized Facebook Live started successfully! 🚀🔥</h2>');
 });
+
 
 // ලයිව් එක නතර කරන්න රූට් එක
 app.get('/stop-live', (logReq, res) => {
