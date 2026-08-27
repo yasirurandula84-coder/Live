@@ -99,7 +99,7 @@ app.post('/start-fb-live', (req, res) => {
                    'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
             
             // ශ්‍රව්‍ය වෙනස්කම් (කෙළින්ම ශබ්දය මඳක් වෙනස් කර කොපිෆ්රී කිරීමට)
-            '-af', 'atempo=1.000,rubberband=pitch=1.08:tempo=1.0',
+            '-af', 'atempo=1.004,rubberband=pitch=1.08:tempo=1.0',
 
             // ස්ට්‍රීම් එක ස්මූත් කිරීමට සහ CPU බර බෙදා හැරීමට 
             '-threads', '4',               // සර්වර් කෝර්ස් භාවිතය වැඩි කිරීම
@@ -111,7 +111,7 @@ app.post('/start-fb-live', (req, res) => {
             '-maxrate', '1000k',
             '-bufsize', '2600k',
             '-pix_fmt', 'yuv420p',
-            '-g', '40',                    
+            '-g', '50',                    
             '-c:a', 'aac',
             '-b:a', '96k',
             '-ar', '44100',
