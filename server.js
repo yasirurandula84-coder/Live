@@ -1,4 +1,4 @@
-Const express = require('express');
+const express = require('express');
 const path = require('path');
 const fetch = require('node-fetch');
 const http = require('http');
@@ -56,17 +56,26 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
-// ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
-app.post('/start-fb-live', (req, res) => {
-        const rawStreamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
+// යූටියුබ් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
+app.post('/start-yt-live', (req, res) => {
+    const streamKey = req.body.streamKey;
+    if (!streamKey) {
+        return res.status(400).send('YouTube Stream Key required!');
+    }
+
+    if (activeStreamProcess) {
+        return res.status(400).send('A stream is already running! Stop it first.');
+    }
+
+    const rawStreamUrl = "https://playztv-apps.pages.dev/willow/index.m3u8";
     
-    // සර්වර් එකේ ලෝකල් ප්‍රොක්සි යූආර්එල් එක FFmpeg එකට ලබා දීම
     const PORT_NUM = process.env.PORT || 3000;
     const streamUrl = `http://127.0.0.1:${PORT_NUM}/proxy?url=` + encodeURIComponent(rawStreamUrl);
     
-    const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
+    // යූටියුබ් හි නිල RTMP URL එක සහ Stream Key එක එකතු කිරීම
+    const ytRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${streamKey}`;
 
-    console.log('Starting Auto-Recovery Live streaming via Proxy:', streamUrl);
+    console.log('Starting Auto-Recovery YouTube Live streaming via Proxy:', streamUrl);
 
     function startStream() {
         if (activeStreamProcess) {
@@ -85,14 +94,17 @@ app.post('/start-fb-live', (req, res) => {
                 '-analyzeduration 20M'
             ])
             .outputOptions([
-                // ඔයා ඉල්ලපු සියලුම ෆිල්ටර්ස් කිසිවක් අයින් නොකර එලෙසම ඇත
                 '-sws_flags', 'fast_bilinear',
-                '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.1:contrast=1.15,' +
-                       'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
-                       'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
-                       'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
-                       'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
-                       'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
+                '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,' +
+                   // 1. උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
+                   'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
+                   'drawbox=x=1050:y=10:w=200:h=60:color=red@0.8:t=2,' +
+                   'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
+                   'drawtext=text=SL:fontcolor=red:fontsize=24:x=1145:y=24,' +
+                   'drawbox=x=1190:y=34:w=12:h=12:color=red@0.9:t=fill,' +
+                   
+                   // 2. යටින් පෙන්වන 'SHARE_NOW' Watermark එක
+                   'drawtext=text=SHARE_NOW:fontcolor=white@0.35:fontsize=22:x=(w-text_w)/2:y=h-50',
                 
                 '-af', 'atempo=1.002,rubberband=pitch=1.08:tempo=1.0',
 
@@ -112,10 +124,9 @@ app.post('/start-fb-live', (req, res) => {
                 '-max_muxing_queue_size', '9999',
                 '-f', 'flv'
             ])
-
-            .output(fbRtmpUrl)
+            .output(ytRtmpUrl)
             .on('start', (commandLine) => {
-                console.log('FFmpeg Auto-Recovery Stream spawned:', commandLine);
+                console.log('FFmpeg Auto-Recovery YouTube Stream spawned:', commandLine);
             })
             .on('error', (err) => {
                 console.error('Streaming error encountered:', err.message);
@@ -141,7 +152,7 @@ app.post('/start-fb-live', (req, res) => {
 
     startStream();
 
-    res.send('<h2>Auto-Recovery Facebook Live started successfully! 🚀🔥</h2>');
+    res.send('<h2>Auto-Recovery YouTube Live started successfully! 🚀🔥</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
@@ -168,3 +179,4 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+                
