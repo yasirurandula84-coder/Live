@@ -1,4 +1,4 @@
-const express = require('express');
+Const express = require('express');
 const path = require('path');
 const fetch = require('node-fetch');
 const http = require('http');
@@ -58,16 +58,7 @@ app.get('/proxy', async (req, res) => {
 
 // ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-fb-live', (req, res) => {
-    const streamKey = req.body.streamKey;
-    if (!streamKey) {
-        return res.status(400).send('Stream Key required!');
-    }
-
-    if (activeStreamProcess) {
-        return res.status(400).send('A stream is already running! Stop it first.');
-    }
-
-    const rawStreamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
+        const rawStreamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
     
     // සර්වර් එකේ ලෝකල් ප්‍රොක්සි යූආර්එල් එක FFmpeg එකට ලබා දීම
     const PORT_NUM = process.env.PORT || 3000;
@@ -83,9 +74,8 @@ app.post('/start-fb-live', (req, res) => {
             activeStreamProcess = null;
         }
 
-                const command = ffmpeg(rawStreamUrl)
+        const command = ffmpeg(streamUrl)
             .inputOptions([
-                '-headers', 'Referer: https://www.fancode.com/\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n',
                 '-re',
                 '-reconnect 1',
                 '-reconnect_streamed 1',
@@ -94,17 +84,16 @@ app.post('/start-fb-live', (req, res) => {
                 '-probesize 50M',
                 '-analyzeduration 20M'
             ])
-
             .outputOptions([
                 // ඔයා ඉල්ලපු සියලුම ෆිල්ටර්ස් කිසිවක් අයින් නොකර එලෙසම ඇත
                 '-sws_flags', 'fast_bilinear',
-                                '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.1:contrast=1.15,' +
-                       'drawbox=x=1140:y=65:w=100:h=65:color=black@0.85:t=fill,' +
-                       'drawbox=x=1140:y=65:w=100:h=65:color=yellow@0.9:t=2,' +
-                       'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=72,' +
-                       'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=95,' +
+                '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.1:contrast=1.15,' +
+                       'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
+                       'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
+                       'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
+                       'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
                        'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
-
+                
                 '-af', 'atempo=1.002,rubberband=pitch=1.08:tempo=1.0',
 
                 '-threads', '4',               
@@ -123,6 +112,7 @@ app.post('/start-fb-live', (req, res) => {
                 '-max_muxing_queue_size', '9999',
                 '-f', 'flv'
             ])
+
             .output(fbRtmpUrl)
             .on('start', (commandLine) => {
                 console.log('FFmpeg Auto-Recovery Stream spawned:', commandLine);
