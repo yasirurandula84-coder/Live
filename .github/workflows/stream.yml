@@ -15,7 +15,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
-            - name: Start Live Stream to YouTube
+      - name: Start Live Stream to YouTube
         env:
           YT_KEY: ${{ secrets.YT_KEY }}
         run: |
