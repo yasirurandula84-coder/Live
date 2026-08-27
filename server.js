@@ -83,8 +83,9 @@ app.post('/start-fb-live', (req, res) => {
             activeStreamProcess = null;
         }
 
-        const command = ffmpeg(streamUrl)
+                const command = ffmpeg(rawStreamUrl)
             .inputOptions([
+                '-headers', 'Referer: https://www.fancode.com/\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n',
                 '-re',
                 '-reconnect 1',
                 '-reconnect_streamed 1',
@@ -93,6 +94,7 @@ app.post('/start-fb-live', (req, res) => {
                 '-probesize 50M',
                 '-analyzeduration 20M'
             ])
+
             .outputOptions([
                 // ඔයා ඉල්ලපු සියලුම ෆිල්ටර්ස් කිසිවක් අයින් නොකර එලෙසම ඇත
                 '-sws_flags', 'fast_bilinear',
