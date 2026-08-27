@@ -98,13 +98,13 @@ app.post('/start-fb-live', (req, res) => {
             .outputOptions([
                 // ඔයා ඉල්ලපු සියලුම ෆිල්ටර්ස් කිසිවක් අයින් නොකර එලෙසම ඇත
                 '-sws_flags', 'fast_bilinear',
-                '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.1:contrast=1.15,' +
-                       'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
-                       'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
-                       'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
-                       'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
+                                '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.1:contrast=1.15,' +
+                       'drawbox=x=1140:y=65:w=100:h=65:color=black@0.85:t=fill,' +
+                       'drawbox=x=1140:y=65:w=100:h=65:color=yellow@0.9:t=2,' +
+                       'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=72,' +
+                       'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=95,' +
                        'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
-                
+
                 '-af', 'atempo=1.002,rubberband=pitch=1.08:tempo=1.0',
 
                 '-threads', '4',               
