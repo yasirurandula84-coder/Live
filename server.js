@@ -78,9 +78,10 @@ app.post('/start-fb-live', (req, res) => {
             activeStreamProcess = null;
         }
 
-        const command = ffmpeg(streamUrl)
+                const command = ffmpeg(streamUrl)
             .inputOptions([
-                '-user_agent VLC/3.0.20', // Akamai ලින්ක් එක වැඩ කිරීමට අවශ්‍ය User-Agent එක මෙහි එකතු කර ඇත
+                '-headers', 'Referer: https://www.fancode.com/\r\nUser-Agent: VLC/3.0.20 LibVLC/3.0.20\r\n',
+                '-user_agent', 'VLC/3.0.20 LibVLC/3.0.20',
                 '-re',
                 '-reconnect 1',
                 '-reconnect_streamed 1',
@@ -89,6 +90,7 @@ app.post('/start-fb-live', (req, res) => {
                 '-probesize 50M',
                 '-analyzeduration 20M'
             ])
+
             .outputOptions([
                 // ඔයා ඉල්ලපු සියලුම ෆිල්ටර්ස් කිසිවක් අයින් නොකර එලෙසම තබා ඇත
                 '-sws_flags', 'fast_bilinear',
