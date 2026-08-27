@@ -80,6 +80,7 @@ app.post('/start-fb-live', (req, res) => {
 
         const command = ffmpeg(streamUrl)
             .inputOptions([
+                '-user_agent VLC/3.0.20', // Akamai ලින්ක් එක වැඩ කිරීමට අවශ්‍ය User-Agent එක මෙහි එකතු කර ඇත
                 '-re',
                 '-reconnect 1',
                 '-reconnect_streamed 1',
@@ -88,38 +89,36 @@ app.post('/start-fb-live', (req, res) => {
                 '-probesize 50M',
                 '-analyzeduration 20M'
             ])
-                            .outputOptions([
-            // කොපිറයිට් වැළැක්වීමට අත්‍යවශ්‍ය ෆිල්ටර්ස් (CPU බර අවම කර ප්‍රශස්ත කරන ලදී)
-            '-sws_flags', 'fast_bilinear',
-            '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.1:contrast=1.15,' +
-                   'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
-                   'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
-                   'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
-                   'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
-                   'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
-            
-            // ශ්‍රව්‍ය වෙනස්කම් (කෙළින්ම ශබ්දය මඳක් වෙනස් කර කොපිෆ්රී කිරීමට)
-            '-af', 'atempo=1.002,rubberband=pitch=1.08:tempo=1.0',
+            .outputOptions([
+                // ඔයා ඉල්ලපු සියලුම ෆිල්ටර්ස් කිසිවක් අයින් නොකර එලෙසම තබා ඇත
+                '-sws_flags', 'fast_bilinear',
+                '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.1:contrast=1.15,' +
+                       'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
+                       'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
+                       'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
+                       'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
+                       'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
+                
+                // ශ්‍රව්‍ය වෙනස්කම් (Original code එකේ තිබූ පරිදිම)
+                '-af', 'atempo=1.002,rubberband=pitch=1.08:tempo=1.0',
 
-            // ස්ට්‍රීම් එක ස්මූත් කිරීමට සහ CPU බර බෙදා හැරීමට 
-            '-threads', '4',               // සර්වර් කෝර්ස් භාවිතය වැඩි කිරීම
-            '-r', '25',                    
-            '-c:v', 'libx264',
-            '-preset', 'ultrafast',        
-            '-tune', 'zerolatency',
-            '-b:v', '1000k',               
-            '-maxrate', '1400k',
-            '-bufsize', '2800k',
-            '-pix_fmt', 'yuv420p',
-            '-g', '50',                    
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            '-ar', '44100',
-            '-max_muxing_queue_size', '9999',
-            '-f', 'flv'
-        ])
-
-
+                // ස්ට්‍රීම් එක ස්මූත් කිරීමට සහ CPU බර බෙදා හැරීමට 
+                '-threads', '4',               
+                '-r', '25',                    
+                '-c:v', 'libx264',
+                '-preset', 'ultrafast',        
+                '-tune', 'zerolatency',
+                '-b:v', '1000k',               
+                '-maxrate', '1400k',
+                '-bufsize', '2800k',
+                '-pix_fmt', 'yuv420p',
+                '-g', '50',                    
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-ar', '44100',
+                '-max_muxing_queue_size', '9999',
+                '-f', 'flv'
+            ])
             .output(fbRtmpUrl)
             .on('start', (commandLine) => {
                 console.log('FFmpeg Auto-Recovery Stream spawned:', commandLine);
@@ -150,8 +149,6 @@ app.post('/start-fb-live', (req, res) => {
 
     res.send('<h2>Auto-Recovery Facebook Live started successfully! 🚀🔥</h2>');
 });
-
-
 
 // ලයිව් එක නතර කරන්න රූට් එක
 app.get('/stop-live', (logReq, res) => {
