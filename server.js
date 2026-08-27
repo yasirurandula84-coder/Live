@@ -67,7 +67,7 @@ app.post('/start-fb-live', (req, res) => {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    const rawStreamUrl = "https://sonymtmnew.akamaized.net/hls/live/2105079/cricodi2708/ENG/master.m3u8?hdnea=exp=1787837437~acl=/*~id=5eaafe32adfe3664cdf2f6cd2f24ab45-1787794205008~hmac=30e67cbe188b88b47bb24266936d2a808f6b7c525865dd99d30585267edc9215";
+    const rawStreamUrl = "https://stream.ottplus.live/live/ten_1_hd_abr/live/ten_1_hd_720/chunks.m3u8";
     
     // සර්වර් එකේ ලෝකල් ප්‍රොක්සි යූආර්එල් එක FFmpeg එකට ලබා දීම
     const PORT_NUM = process.env.PORT || 3000;
