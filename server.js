@@ -58,19 +58,15 @@ app.get('/proxy', async (req, res) => {
 
 // ෆේස්බුක් එකට සර්වර් එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
 app.post('/start-fb-live', (req, res) => {
-    const streamKey = req.body.streamKey;
-    if (!streamKey) {
-        return res.status(400).send('Stream Key required!');
-    }
-
-    if (activeStreamProcess) {
-        return res.status(400).send('A stream is already running! Stop it first.');
-    }
-
-    const streamUrl = "https://sonymtmnew.akamaized.net/hls/live/2105079/cricodi2708/ENG/master.m3u8?hdnea=exp=1787837437~acl=/*~id=5eaafe32adfe3664cdf2f6cd2f24ab45-1787794205008~hmac=30e67cbe188b88b47bb24266936d2a808f6b7c525865dd99d30585267edc9215";
+        const rawStreamUrl = "https://sonymtmnew.akamaized.net/hls/live/2105079/cricodi2708/ENG/master.m3u8?hdnea=exp=1787837437~acl=/*~id=5eaafe32adfe3664cdf2f6cd2f24ab45-1787794205008~hmac=30e67cbe188b88b47bb24266936d2a808f6b7c525865dd99d30585267edc9215";
+    
+    // සර්වර් එකේ ලෝකල් ප්‍රොක්සි යූආර්එල් එක FFmpeg එකට ලබා දීම
+    const PORT_NUM = process.env.PORT || 3000;
+    const streamUrl = `http://127.0.0.1:${PORT_NUM}/proxy?url=` + encodeURIComponent(rawStreamUrl);
+    
     const fbRtmpUrl = `rtmps://live-api-s.facebook.com:443/rtmp/${streamKey}`;
 
-    console.log('Starting Auto-Recovery Live streaming to Facebook:', streamUrl);
+    console.log('Starting Auto-Recovery Live streaming via Proxy:', streamUrl);
 
     function startStream() {
         if (activeStreamProcess) {
@@ -78,10 +74,8 @@ app.post('/start-fb-live', (req, res) => {
             activeStreamProcess = null;
         }
 
-                const command = ffmpeg(streamUrl)
+        const command = ffmpeg(streamUrl)
             .inputOptions([
-                '-headers', 'Referer: https://www.fancode.com/\r\nUser-Agent: VLC/3.0.20 LibVLC/3.0.20\r\n',
-                '-user_agent', 'VLC/3.0.20 LibVLC/3.0.20',
                 '-re',
                 '-reconnect 1',
                 '-reconnect_streamed 1',
@@ -90,9 +84,8 @@ app.post('/start-fb-live', (req, res) => {
                 '-probesize 50M',
                 '-analyzeduration 20M'
             ])
-
             .outputOptions([
-                // ඔයා ඉල්ලපු සියලුම ෆිල්ටර්ස් කිසිවක් අයින් නොකර එලෙසම තබා ඇත
+                // ඔයා ඉල්ලපු සියලුම ෆිල්ටර්ස් කිසිවක් අයින් නොකර එලෙසම ඇත
                 '-sws_flags', 'fast_bilinear',
                 '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.1:contrast=1.15,' +
                        'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
@@ -101,10 +94,8 @@ app.post('/start-fb-live', (req, res) => {
                        'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
                        'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
                 
-                // ශ්‍රව්‍ය වෙනස්කම් (Original code එකේ තිබූ පරිදිම)
                 '-af', 'atempo=1.002,rubberband=pitch=1.08:tempo=1.0',
 
-                // ස්ට්‍රීම් එක ස්මූත් කිරීමට සහ CPU බර බෙදා හැරීමට 
                 '-threads', '4',               
                 '-r', '25',                    
                 '-c:v', 'libx264',
@@ -121,6 +112,7 @@ app.post('/start-fb-live', (req, res) => {
                 '-max_muxing_queue_size', '9999',
                 '-f', 'flv'
             ])
+
             .output(fbRtmpUrl)
             .on('start', (commandLine) => {
                 console.log('FFmpeg Auto-Recovery Stream spawned:', commandLine);
