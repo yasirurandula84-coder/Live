@@ -17,7 +17,7 @@ app.use(express.json());
 
 let activeStreamProcess = null;
 
-// ප්‍රොක්සි රූට් එක
+// ප්‍රොක්සි රූට් එක (M3U8 සහ චන්ක්ස් ප්‍රොක්සි කිරීම සඳහා)
 app.get('/proxy', async (req, res) => {
     let targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('Missing url');
@@ -34,7 +34,7 @@ app.get('/proxy', async (req, res) => {
         response.headers.forEach((v, n) => res.setHeader(n, v));
         res.status(response.status);
 
-        if (targetUrl.endsWith('.m3u8')) {
+        if (targetUrl.endsWith('.m3u8') || targetUrl.includes('.m3u8')) {
             const text = await response.text();
             const rewritten = text.split('\n').map(line => {
                 line = line.trim();
@@ -67,12 +67,12 @@ app.post('/start-yt-live', (req, res) => {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
+    // ඔයා දුන් අලුත් Stream URL එක සහ ප්‍රොක්සි හරහා සම්බන්ධ කිරීම
     const rawStreamUrl = "https://playztv-apps.pages.dev/willow/index.m3u8";
-    
     const PORT_NUM = process.env.PORT || 3000;
     const streamUrl = `http://127.0.0.1:${PORT_NUM}/proxy?url=` + encodeURIComponent(rawStreamUrl);
     
-    // යූටියුබ් හි නිල RTMP URL එක සහ Stream Key එක එකතු කිරීම
+    // යූටියුබ් RTMP ලිපිනය සහ Stream Key එක
     const ytRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${streamKey}`;
 
     console.log('Starting Auto-Recovery YouTube Live streaming via Proxy:', streamUrl);
@@ -94,6 +94,7 @@ app.post('/start-yt-live', (req, res) => {
                 '-analyzeduration 20M'
             ])
             .outputOptions([
+                // කොපිර්යිට්ස් වළක්වන සහ ඔයා ඉල්ලූ සියලුම ෆිල්ටර්ස්
                 '-sws_flags', 'fast_bilinear',
                 '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,' +
                    // 1. උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
@@ -106,8 +107,10 @@ app.post('/start-yt-live', (req, res) => {
                    // 2. යටින් පෙන්වන 'SHARE_NOW' Watermark එක
                    'drawtext=text=SHARE_NOW:fontcolor=white@0.35:fontsize=22:x=(w-text_w)/2:y=h-50',
                 
+                // ශබ්දය වෙනස් කිරීම
                 '-af', 'atempo=1.002,rubberband=pitch=1.08:tempo=1.0',
 
+                // ස්ට්‍රීම් එක ස්මූත් කිරීමට සහ CPU බර ප්‍රශස්ත කිරීමට
                 '-threads', '4',               
                 '-r', '25',                    
                 '-c:v', 'libx264',
