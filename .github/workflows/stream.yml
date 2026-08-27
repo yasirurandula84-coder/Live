@@ -24,8 +24,17 @@ jobs:
           ffmpeg -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
           -fflags +discardcorrupt+genpts -probesize 15M -analyzeduration 5M \
           -i "https://playztv-apps.pages.dev/willow/index.m3u8" \
-          -vf "fps=25,scale=1280:720,crop=in_w-16:in_h-16:8:8,eq=saturation=1.15:brightness=0.02,noise=alls=8:allf=t+u,drawbox=x=iw-w-15:y=10:w=320:h=150:color=black@0.9:t=fill" \
-          -af "treble=g=3,bass=g=-2,aresample=async=1:min_hard_comp=0.100000:first_pts=0" \
+          '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,' +
+                   // 1. උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
+                   'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
+                   'drawbox=x=1050:y=10:w=200:h=60:color=red@0.8:t=2,' +
+                   'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
+                   'drawtext=text=SL:fontcolor=red:fontsize=24:x=1145:y=24,' +
+                   'drawbox=x=1190:y=34:w=12:h=12:color=red@0.9:t=fill,' +
+                   
+                   // 2. වීඩියෝ එකේ යට කොටසින් පෙන්වන 'SHARE NOW' Watermark එක (ටිකක් පෙනෙන නොපෙනෙන ගානට සුදු පාටින්)
+                   'drawtext=text=SHARE\\ NOW:fontcolor=white@0.35:fontsize=22:x=(w-text_w)/2:y=h-50',
+                      -af "treble=g=3,bass=g=-2,aresample=async=1:min_hard_comp=0.100000:first_pts=0" \
           -c:v libx264 -preset ultrafast -tune zerolatency -fps_mode cfr -g 50 \
           -b:v 700k -maxrate 700k -bufsize 1400k -pix_fmt yuv420p \
           -c:a aac -b:a 96k -ar 44100 -ac 2 -max_muxing_queue_size 99999 \
