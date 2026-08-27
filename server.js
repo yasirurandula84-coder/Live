@@ -78,30 +78,38 @@ app.post('/start-yt-live', (req, res) => {
             '-probesize 20M',
             '-analyzeduration 10M'
         ])
-        .outputOptions([
-            // 1. පැහැදිලි HD 720p රෙසොලුෂන් සහ සුමට 30 FPS සඳහා සැකසූ වීඩියෝ ෆිල්ටර්
-            '-vf', 'fps=30,scale=1280:720,crop=in_w-12:in_h-12:6:6',
+                .outputOptions([
+            // වීඩියෝ ෆිල්ටර්ස්: Crop, Scale, Color, ඉහළ දකුණු කෙළවරේ Logo එක සහ යටින් 'SHARE NOW' Watermark එක
+            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,' +
+                   // 1. උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
+                   'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
+                   'drawbox=x=1050:y=10:w=200:h=60:color=red@0.8:t=2,' +
+                   'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
+                   'drawtext=text=SL:fontcolor=red:fontsize=24:x=1145:y=24,' +
+                   'drawbox=x=1190:y=34:w=12:h=12:color=red@0.9:t=fill,' +
+                   
+                   // 2. වීඩියෝ එකේ යට කොටසින් පෙන්වන 'SHARE NOW' Watermark එක (ටිකක් පෙනෙන නොපෙනෙන ගානට සුදු පාටින්)
+                   'drawtext=text=SHARE\\ NOW:fontcolor=white@0.35:fontsize=22:x=(w-text_w)/2:y=h-50',
             
-            // 2. ශබ්දය සඳහා සැහැල්ලු සහ ස්ථාවර රීසැම්ප්ලිං
-            '-af', 'aresample=async=1:min_hard_comp=0.100000:first_pts=0',
+            // ඕඩියෝ ෆිල්ටර් (Rubberband Pitch)
+            '-af', 'rubberband=pitch=1.12:tempo=1.0',
 
-            // 3. HD Quality එකට ගැළපෙන ප්‍රශස්ත Bitrate සහ Preset සැකසුම් (ලැග් වීම සම්පූර්ණයෙන්ම වළක්වයි)
+            // ස්ට්‍රීම් සහ කෝඩින්ග් සෙටින්ග්ස්
             '-c:v', 'libx264',
-            '-preset', 'veryfast',
+            '-preset', 'ultrafast',
             '-tune', 'zerolatency',
-            '-fps_mode', 'cfr',
-            '-g', '60',
-            '-b:v', '1800k',
-            '-maxrate', '2200k',
-            '-bufsize', '3600k',
+            '-b:v', '1200k',
+            '-maxrate', '1800k',
+            '-bufsize', '3200k',
             '-pix_fmt', 'yuv420p',
+            '-g', '30',
             '-c:a', 'aac',
             '-b:a', '128k',
             '-ar', '44100',
-            '-ac', '2',
-            '-max_muxing_queue_size', '99999',
+            '-max_muxing_queue_size', '9999',
             '-f', 'flv'
         ])
+
         .output(ytRtmpUrl)
         .on('start', (commandLine) => {
             console.log('FFmpeg HD Stream spawned:', commandLine);
