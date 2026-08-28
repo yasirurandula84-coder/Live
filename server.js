@@ -57,19 +57,19 @@ app.get('/proxy', async (req, res) => {
 });
 
 // ලයිව් එක පටන් ගන්න රූට් එක (Amazon IVS / Custom RTMP සඳහා)
+// ලයිව් එක පටන් ගන්න රූට් එක (ප්‍රොක්සි නොමැතිව කෙලින්ම ලින්ක් එක ලබාදීම)
 app.post('/start-live', (req, res) => {
     if (activeStreamProcess) {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    const rawStreamUrl = "https://playztv-apps.pages.dev/willow/index.m3u8";
-    const PORT_NUM = process.env.PORT || 3000;
-    const streamUrl = `http://127.0.0.1:${PORT_NUM}/proxy?url=` + encodeURIComponent(rawStreamUrl);
+    // ප්‍රොක්සි එක නැතුව කෙලින්ම ඔයා දුන් M3U8 ලින්ක් එක පාවිච්චි කිරීම
+    const streamUrl = "https://playztv-apps.pages.dev/willow/index.m3u8";
     
-    // ඔයා දුන් අලුත් RTMP URL එක සහ Stream Key එක එකතු කිරීම
+    // ඔයා දුන් RTMP URL එක සහ Stream Key එක
     const customRtmpUrl = "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV";
 
-    console.log('Starting Auto-Recovery Live streaming via Proxy to Custom RTMP...');
+    console.log('Starting Auto-Recovery Live streaming directly from:', streamUrl);
 
     function startStream() {
         if (activeStreamProcess) {
@@ -116,7 +116,7 @@ app.post('/start-live', (req, res) => {
             ])
             .output(customRtmpUrl)
             .on('start', (commandLine) => {
-                console.log('FFmpeg Custom Stream spawned:', commandLine);
+                console.log('FFmpeg Stream spawned directly:', commandLine);
             })
             .on('error', (err) => {
                 console.error('Streaming error encountered:', err.message);
@@ -142,8 +142,9 @@ app.post('/start-live', (req, res) => {
 
     startStream();
 
-    res.send('<h2>Auto-Recovery Custom Live started successfully! 🚀🔥</h2>');
+    res.send('<h2>Direct Live stream started successfully! 🚀🔥</h2>');
 });
+
 
 // ලයිව් එක නතර කරන්න රූට් එක
 app.get('/stop-live', (req, res) => {
