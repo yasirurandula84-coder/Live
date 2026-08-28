@@ -56,77 +56,93 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
-// YouTube එකට HD Quality එකෙන් ලයිව් එක පටන් ගන්න රූට් එක
-app.post('/start-yt-live', (req, res) => {
-    const streamKey = req.body.streamKey || "Xpay-4reg-u6ya-ha0a-b239";
-    const streamUrl = "https://playztv-apps.pages.dev/willow/index.m3u8";
-
+// ලයිව් එක පටන් ගන්න රූට් එක (Amazon IVS / Custom RTMP සඳහා)
+app.post('/start-live', (req, res) => {
     if (activeStreamProcess) {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    const ytRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${streamKey}`;
+    const rawStreamUrl = "https://playztv-apps.pages.dev/willow/index.m3u8";
+    const PORT_NUM = process.env.PORT || 3000;
+    const streamUrl = `http://127.0.0.1:${PORT_NUM}/proxy?url=` + encodeURIComponent(rawStreamUrl);
+    
+    // ඔයා දුන් අලුත් RTMP URL එක සහ Stream Key එක එකතු කිරීම
+    const customRtmpUrl = "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV";
 
-    console.log('Starting High Quality YouTube Stream:', streamUrl);
+    console.log('Starting Auto-Recovery Live streaming via Proxy to Custom RTMP...');
 
-    const command = ffmpeg(streamUrl)
-        .inputOptions([
-            '-reconnect 1',
-            '-reconnect_streamed 1',
-            '-reconnect_delay_max 5',
-            '-fflags +discardcorrupt+genpts',
-            '-probesize 20M',
-            '-analyzeduration 10M'
-        ])
-                .outputOptions([
-            // වීඩියෝ ෆිල්ටර්ස්: Crop, Scale, Color, ඉහළ දකුණු කෙළවරේ Logo එක සහ යටින් 'SHARE NOW' Watermark එක
-            '-vf', 'crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:brightness=0.01:contrast=1.25,' +
-                   // 1. උඩ දකුණු කෙළවරේ 'LIVE SL' ලෝගෝ කොටුව
-                   'drawbox=x=1050:y=10:w=200:h=60:color=black@0.85:t=fill,' +
-                   'drawbox=x=1050:y=10:w=200:h=60:color=red@0.8:t=2,' +
-                   'drawtext=text=LIVE:fontcolor=white:fontsize=24:x=1075:y=24,' +
-                   'drawtext=text=SL:fontcolor=red:fontsize=24:x=1145:y=24,' +
-                   'drawbox=x=1190:y=34:w=12:h=12:color=red@0.9:t=fill,' +
-                   
-                   // 2. වීඩියෝ එකේ යට කොටසින් පෙන්වන 'SHARE NOW' Watermark එක (ටිකක් පෙනෙන නොපෙනෙන ගානට සුදු පාටින්)
-                   'drawtext=text=SHARE\\ NOW:fontcolor=white@0.35:fontsize=22:x=(w-text_w)/2:y=h-50',
+    function startStream() {
+        if (activeStreamProcess) {
+            try { activeStreamProcess.kill('SIGKILL'); } catch(e) {}
+            activeStreamProcess = null;
+        }
+
+        const command = ffmpeg(streamUrl)
+            .inputOptions([
+                '-re',
+                '-reconnect 1',
+                '-reconnect_streamed 1',
+                '-reconnect_delay_max 5',
+                '-fflags +discardcorrupt+genpts+nobuffer',
+                '-probesize 50M',
+                '-analyzeduration 20M'
+            ])
+            .outputOptions([
+                '-sws_flags', 'fast_bilinear',
+                '-vf', 'setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.1:contrast=1.15,' +
+                       'drawbox=x=1140:y=25:w=100:h=65:color=black@0.85:t=fill,' +
+                       'drawbox=x=1140:y=25:w=100:h=65:color=yellow@0.9:t=2,' +
+                       'drawtext=text=LANKA:fontcolor=white:fontsize=18:x=1165:y=32,' +
+                       'drawtext=text=LIVE:fontcolor=yellow:fontsize=20:x=1158:y=55,' +
+                       'drawtext=text=SHARE_NOW:fontcolor=white@0.75:fontsize=22:x=(w-text_w)/2:y=h-50',
             
-            // ඕඩියෝ ෆිල්ටර් (Rubberband Pitch)
-            '-af', 'rubberband=pitch=1.12:tempo=1.0',
+                '-af', 'atempo=1.002,rubberband=pitch=1.08:tempo=1.0',
 
-            // ස්ට්‍රීම් සහ කෝඩින්ග් සෙටින්ග්ස්
-            '-c:v', 'libx264',
-            '-preset', 'ultrafast',
-            '-tune', 'zerolatency',
-            '-b:v', '1200k',
-            '-maxrate', '1800k',
-            '-bufsize', '3200k',
-            '-pix_fmt', 'yuv420p',
-            '-g', '30',
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            '-ar', '44100',
-            '-max_muxing_queue_size', '9999',
-            '-f', 'flv'
-        ])
+                '-threads', '4',               
+                '-r', '25',                    
+                '-c:v', 'libx264',
+                '-preset', 'ultrafast',        
+                '-tune', 'zerolatency',
+                '-b:v', '1000k',               
+                '-maxrate', '1400k',
+                '-bufsize', '2800k',
+                '-pix_fmt', 'yuv420p',
+                '-g', '50',                    
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-ar', '44100',
+                '-max_muxing_queue_size', '9999',
+                '-f', 'flv'
+            ])
+            .output(customRtmpUrl)
+            .on('start', (commandLine) => {
+                console.log('FFmpeg Custom Stream spawned:', commandLine);
+            })
+            .on('error', (err) => {
+                console.error('Streaming error encountered:', err.message);
+                if (activeStreamProcess) {
+                    setTimeout(() => {
+                        console.log('Attempting to restart stream after error...');
+                        startStream();
+                    }, 3000);
+                }
+            })
+            .on('end', () => {
+                console.log('Streaming finished. Restarting automatically...');
+                if (activeStreamProcess) {
+                    setTimeout(() => {
+                        startStream();
+                    }, 2000);
+                }
+            });
 
-        .output(ytRtmpUrl)
-        .on('start', (commandLine) => {
-            console.log('FFmpeg HD Stream spawned:', commandLine);
-        })
-        .on('error', (err) => {
-            console.error('YouTube HD Streaming error:', err.message);
-            activeStreamProcess = null;
-        })
-        .on('end', () => {
-            console.log('YouTube HD Streaming finished.');
-            activeStreamProcess = null;
-        });
+        command.run();
+        activeStreamProcess = command;
+    }
 
-    command.run();
-    activeStreamProcess = command;
+    startStream();
 
-    res.send('<h2>High Quality HD Live started successfully! 🚀</h2>');
+    res.send('<h2>Auto-Recovery Custom Live started successfully! 🚀🔥</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
