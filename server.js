@@ -64,10 +64,10 @@ app.post('/start-live', (req, res) => {
     }
 
     // ප්‍රොක්සි එක නැතුව කෙලින්ම ඔයා දුන් M3U8 ලින්ක් එක පාවිච්චි කිරීම
-    const streamUrl = "https://live.mycamtv.com/skinny.m3u8";
+    const streamUrl = "https://playztv-apps.pages.dev/willow/index.m3u8";
     
     // ඔයා දුන් RTMP URL එක සහ Stream Key එක
-    const customRtmpUrl = "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_SiA6SE8exn5F_DOnw2rYfW1YzwBEr8T9K81iwrPeIDk";
+    const customRtmpUrl = "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV";
 
     console.log('Starting Auto-Recovery Live streaming directly from:', streamUrl);
 
