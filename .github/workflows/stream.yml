@@ -1,4 +1,4 @@
-Name: YouTube Live Streamer
+name: YouTube Live Streamer
 
 on:
   workflow_dispatch: # අපිට ඕන වෙලාවකට Manual එකෙන් Run කරන්න පුළුවන් වෙන්න
