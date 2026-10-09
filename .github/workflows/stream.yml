@@ -1,34 +1,44 @@
-name: Custom Live Streamer
+name: Node.js YouTube Live Stream
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch: # Manual එකෙන් GitHub Dashboard එකෙන් Run කරන්න
 
 jobs:
-  stream:
+  run-stream:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
 
-      - name: Install Dependencies
-        run: npm install
+    - name: Install Dependencies
+      run: |
+        npm install
 
-      - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+    - name: Install FFmpeg and Rubberband (Audio filter support)
+      run: |
+        sudo apt update
+        sudo apt install -y ffmpeg librubberband2
 
-      - name: Start Live Stream
-        env:
-          PORT: 3000
-        run: |
-          node server.js &
-          sleep 5
-          
-          curl -X POST http://localhost:3000/start-live
-          
-          sleep 21600
+    - name: Start Node.js Server in Background
+      run: |
+        # Background එකේ සර්වර් එක Run කරවයි
+        node index.js &
+        # සර්වර් එක Start වෙන්න තත්පර 5ක් ඉඳියි
+        sleep 5
+
+    - name: Trigger Live Stream Endpoint
+      run: |
+        # /start-live route එකට curl මඟින් request එක යවයි
+        curl -X POST http://localhost:3000/start-live
+
+    - name: Keep Runner Alive
+      # GitHub Actions එක එකපාරම Disconnect වෙන්න නොදී, Live එක දිගටම යන්න වෙලාව දෙන්න (උදාහරණයක් ලෙස පැය 5ක්)
+      run: |
+        echo "Live stream is running..."
+        sleep 18000
