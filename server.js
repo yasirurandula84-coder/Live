@@ -65,7 +65,7 @@ app.post('/start-live', (req, res) => {
     const streamUrl = "https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/tracks-v1a1/mono.ts.m3u8";
     
     // **මෙතැනට ඔයාගේ YouTube Stream Key එක දාන්න**
-    const youtubeStreamKey = "YOUR_YOUTUBE_STREAM_KEY_HERE"; 
+    const youtubeStreamKey = "94xy-uqh4-g9hq-gxbz-2hza"; 
     const youtubeRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${youtubeStreamKey}`;
 
     console.log('Starting Anti-Copyright YouTube Live streaming from:', streamUrl);
