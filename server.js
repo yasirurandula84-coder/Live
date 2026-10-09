@@ -57,7 +57,6 @@ app.get('/proxy', async (req, res) => {
 });
 
 // YouTube Live එක Copyright වලින් ආරක්ෂා කරමින් පටන් ගන්න රූට් එක
-// YouTube Live එක Copyright වලින් ආරක්ෂා කරමින් පටන් ගන්න රූට් එක
 app.post('/start-live', (req, res) => {
     if (activeStreamProcess) {
         return res.status(400).send('A stream is already running! Stop it first.');
@@ -65,7 +64,7 @@ app.post('/start-live', (req, res) => {
 
     const streamUrl = "https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/tracks-v1a1/mono.ts.m3u8";
     
-    // ඔබේ YouTube Stream Key එක
+    // **මෙතැනට ඔයාගේ YouTube Stream Key එක දාන්න**
     const youtubeStreamKey = "94xy-uqh4-g9hq-gxbz-2hza"; 
     const youtubeRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${youtubeStreamKey}`;
 
@@ -90,15 +89,10 @@ app.post('/start-live', (req, res) => {
             .outputOptions([
                 '-sws_flags', 'fast_bilinear',
                 
-                // **ASports Logo එක වැසීම සඳහා යාවත්කාලීන කළ Video Filters:**
-                // 1. setpts: වේගය මඳක් වෙනස් කරයි
-                // 2. scale: 1280x720 ට සකස් කරයි
-                // 3. eq: වර්ණ සහ සැචුරේෂන් මඳක් වෙනස් කරයි
-                // 4. drawbox (ASports logo area): දකුණු පැත්තේ උඩට වෙන්න (A Sports ලෝගෝ එක ඇති තැන) කළු පාට බොක්ස් එකක් යොදා ලෝගෝ එක සම්පූර්ණයෙන්ම වසයි
-                // 5. drawtext: එහි උඩින් 'LIVE 24/7' ලෙස පෙන්වයි
+                // **Anti-Copyright & A Sports HD Logo Hiding Video Filters:**
                 '-vf', 'setpts=0.998*PTS,scale=1280:720,eq=saturation=1.12:contrast=1.18,' +
-                       'drawbox=x=1080:y=15:w=180:h=60:color=black@0.95:t=fill,' +
-                       'drawtext=text=LIVE_24_7:fontcolor=yellow:fontsize=18:x=1115:y=33,' +
+                       'drawbox=x=1060:y=10:w=210:h=95:color=black@0.98:t=fill,' +
+                       'drawtext=text=LIVE_24_7:fontcolor=yellow:fontsize=18:x=1115:y=45,' +
                        'drawbox=x=20:y=650:w=220:h=40:color=black@0.8:t=fill,' +
                        'drawtext=text=CRICKET_LIVE:fontcolor=white:fontsize=16:x=35:y=662',
             
@@ -151,7 +145,6 @@ app.post('/start-live', (req, res) => {
 
     res.send('<h2>Protected YouTube Live stream started successfully! 🚀🔥</h2>');
 });
-
 
 // ලයිව් එක නතර කරන්න රූට් එක
 app.get('/stop-live', (req, res) => {
