@@ -24,13 +24,13 @@ jobs:
           ffmpeg -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
           -fflags +discardcorrupt+genpts -probesize 15M -analyzeduration 5M \
           -i "https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/tracks-v1a1/mono.ts.m3u8" \
-          -vf "setpts=0.998*PTS,scale=1280:720,eq=saturation=1.12:contrast=1.18,\
-          drawbox=x=1060:y=10:w=210:h=95:color=black@0.98:t=fill,\
-          drawtext=text='LIVE_24_7':fontcolor=yellow:fontsize=18:x=1115:y=45,\
+          -vf "scale=1280:720,eq=saturation=1.12:contrast=1.18,\
+          drawbox=x=1060:y=20:w=210:h=95:color=black@0.98:t=fill,\
+          drawtext=text='LIVE_24_7':fontcolor=yellow:fontsize=18:x=1115:y=55,\
           drawbox=x=20:y=650:w=220:h=40:color=black@0.8:t=fill,\
           drawtext=text='CRICKET_LIVE':fontcolor=white:fontsize=16:x=35:y=662" \
-          -af "atempo=1.01,rubberband=pitch=1.05:tempo=1.0" \
+          -af "rubberband=pitch=1.02:tempo=1.0" \
           -c:v libx264 -preset ultrafast -tune zerolatency -fps_mode cfr -g 50 \
           -b:v 800k -maxrate 1000k -bufsize 2000k -pix_fmt yuv420p \
-          -c:a aac -b:a 96k -ar 44100 -ac 2 -max_muxing_queue_size 99999 \
+          -c:a aac -b:a 96k -ar 44100 -ac 2 -async 1 -max_muxing_queue_size 99999 \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"
