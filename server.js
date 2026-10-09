@@ -62,7 +62,7 @@ app.post('/start-live', (req, res) => {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    const streamUrl = "https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/tracks-v1a1/mono.ts.m3u8";
+    const streamUrl = "https://tvsen7.aynascope.net/zY3hJ7pQ2vM5gD8s/index.m3u8";
     
     // **මෙතැනට ඔයාගේ YouTube Stream Key එක දාන්න**
     const youtubeStreamKey = "94xy-uqh4-g9hq-gxbz-2hza"; 
