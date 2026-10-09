@@ -1,83 +1,83 @@
-const express = require('express');
-const path = require('path');
-const fetch = require('node-fetch');
-const http = require('http');
-const { Server } = require('socket.io');
-const ffmpeg = require('fluent-ffmpeg');
+Const express = require('express');
+Const path = require('path');
+Const fetch = require('node-fetch');
+Const http = require('http');
+Const { Server } = require('socket.io');
+Const ffmpeg = require('fluent-ffmpeg');
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+Const app = express();
+Const server = http.createServer(app);
+Const io = new Server(server);
 
-const PORT = process.env.PORT || 3000;
+Const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+App.use(express.static(path.join(__dirname, 'public')));
+App.use(express.urlencoded({ extended: true }));
+App.use(express.json());
 
-let activeStreamProcess = null;
+Let activeStreamProcess = null;
 
 // ප්‍රොක්සි රූට් එක
 app.get('/proxy', async (req, res) => {
-    let targetUrl = req.query.url;
-    if (!targetUrl) return res.status(400).send('Missing url');
+    Let targetUrl = req.query.url;
+    If (!targetUrl) return res.status(400).send('Missing url');
 
-    try {
-        const response = await fetch(targetUrl, {
-            headers: {
+    Try {
+        Const response = await fetch(targetUrl, {
+            Headers: {
                 'User-Agent': 'VLC/3.0.20 LibVLC/3.0.20',
                 'Icy-MetaData': '1',
                 'Accept-Encoding': 'identity',
                 'Referer': 'https://www.itcnbd.live/'
             }
         });
-        response.headers.forEach((v, n) => res.setHeader(n, v));
-        res.status(response.status);
+        Response.headers.forEach((v, n) => res.setHeader(n, v));
+        Res.status(response.status);
 
-        if (targetUrl.endsWith('.m3u8')) {
-            const text = await response.text();
-            const rewritten = text.split('\n').map(line => {
-                line = line.trim();
-                if (line && !line.startsWith('#')) {
-                    let absoluteUrl = line;
-                    if (!line.startsWith('http')) {
-                        const urlObj = new URL(targetUrl);
-                        absoluteUrl = `${urlObj.origin}${line.startsWith('/') ? '' : '/'}${line}`;
+        If (targetUrl.endsWith('.m3u8')) {
+            Const text = await response.text();
+            Const rewritten = text.split('\n').map(line => {
+                Line = line.trim();
+                If (line && !line.startsWith('#')) {
+                    Let absoluteUrl = line;
+                    If (!line.startsWith('http')) {
+                        Const urlObj = new URL(targetUrl);
+                        AbsoluteUrl = `${urlObj.origin}${line.startsWith('/') ? '' : '/'}${line}`;
                     }
-                    return `/proxy?url=${encodeURIComponent(absoluteUrl)}`;
+                    Return `/proxy?url=${encodeURIComponent(absoluteUrl)}`;
                 }
-                return line;
+                Return line;
             }).join('\n');
-            return res.send(rewritten);
+            Return res.send(rewritten);
         }
-        response.body.pipe(res);
+        Response.body.pipe(res);
     } catch (err) {
-        res.status(500).send('Proxy error');
+        Res.status(500).send('Proxy error');
     }
 });
 
-// ලයිව් එක පටන් ගන්න රූට් එක (Amazon IVS / Custom RTMP සඳහා)
-// ලයිව් එක පටන් ගන්න රූට් එක (ප්‍රොක්සි නොමැතිව කෙලින්ම ලින්ක් එක ලබාදීම)
+// YouTube Live එක පටන් ගන්න රූට් එක
 app.post('/start-live', (req, res) => {
-    if (activeStreamProcess) {
-        return res.status(400).send('A stream is already running! Stop it first.');
+    If (activeStreamProcess) {
+        Return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    // ප්‍රොක්සි එක නැතුව කෙලින්ම ඔයා දුන් M3U8 ලින්ක් එක පාවිච්චි කිරීම
-    const streamUrl = "https://playztv-apps.pages.dev/willow/index.m3u8";
+    // ඔයා දුන් අලුත් Ayna OTT M3U8 ලින්ක් එක
+    Const streamUrl = "https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/tracks-v1a1/mono.ts.m3u8";
     
-    // ඔයා දුන් RTMP URL එක සහ Stream Key එක
-    const customRtmpUrl = "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV";
+    // **මෙතැනට ඔයාගේ YouTube Stream Key එක දාන්න** (උදාහරණයක් ලෙස: abcd-efgh-ijkl-mnop)
+    Const youtubeStreamKey = "YOUR_YOUTUBE_STREAM_KEY_HERE"; 
+    Const youtubeRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${youtubeStreamKey}`;
 
-    console.log('Starting Auto-Recovery Live streaming directly from:', streamUrl);
+    Console.log('Starting YouTube Live streaming directly from:', streamUrl);
 
-    function startStream() {
-        if (activeStreamProcess) {
-            try { activeStreamProcess.kill('SIGKILL'); } catch(e) {}
-            activeStreamProcess = null;
+    Function startStream() {
+        If (activeStreamProcess) {
+            Try { activeStreamProcess.kill('SIGKILL'); } catch(e) {}
+            ActiveStreamProcess = null;
         }
 
-        const command = ffmpeg(streamUrl)
+        Const command = ffmpeg(streamUrl)
             .inputOptions([
                 '-re',
                 '-reconnect 1',
@@ -114,59 +114,58 @@ app.post('/start-live', (req, res) => {
                 '-max_muxing_queue_size', '9999',
                 '-f', 'flv'
             ])
-            .output(customRtmpUrl)
+            .output(youtubeRtmpUrl)
             .on('start', (commandLine) => {
-                console.log('FFmpeg Stream spawned directly:', commandLine);
+                Console.log('FFmpeg Stream spawned to YouTube:', commandLine);
             })
             .on('error', (err) => {
-                console.error('Streaming error encountered:', err.message);
-                if (activeStreamProcess) {
-                    setTimeout(() => {
-                        console.log('Attempting to restart stream after error...');
-                        startStream();
+                Console.error('Streaming error encountered:', err.message);
+                If (activeStreamProcess) {
+                    SetTimeout(() => {
+                        Console.log('Attempting to restart stream after error...');
+                        StartStream();
                     }, 3000);
                 }
             })
             .on('end', () => {
-                console.log('Streaming finished. Restarting automatically...');
-                if (activeStreamProcess) {
-                    setTimeout(() => {
-                        startStream();
+                Console.log('Streaming finished. Restarting automatically...');
+                If (activeStreamProcess) {
+                    SetTimeout(() => {
+                        StartStream();
                     }, 2000);
                 }
             });
 
-        command.run();
-        activeStreamProcess = command;
+        Command.run();
+        ActiveStreamProcess = command;
     }
 
-    startStream();
+    StartStream();
 
-    res.send('<h2>Direct Live stream started successfully! 🚀🔥</h2>');
+    Res.send('<h2>YouTube Live stream started successfully! 🚀🔥</h2>');
 });
-
 
 // ලයිව් එක නතර කරන්න රූට් එක
 app.get('/stop-live', (req, res) => {
-    if (activeStreamProcess) {
-        activeStreamProcess.kill('SIGKILL');
-        activeStreamProcess = null;
-        res.send('<h2>Live stream stopped successfully.</h2>');
+    If (activeStreamProcess) {
+        ActiveStreamProcess.kill('SIGKILL');
+        ActiveStreamProcess = null;
+        Res.send('<h2>YouTube Live stream stopped successfully.</h2>');
     } else {
-        res.status(400).send('No active stream running.');
+        Res.status(400).send('No active stream running.');
     }
 });
 
-let activeViewers = 0;
-io.on('connection', (socket) => {
-    activeViewers++;
-    io.emit('updateViewers', activeViewers);
-    socket.on('disconnect', () => {
-        activeViewers = Math.max(0, activeViewers - 1);
-        io.emit('updateViewers', activeViewers);
+Let activeViewers = 0;
+Io.on('connection', (socket) => {
+    ActiveViewers++;
+    Io.emit('updateViewers', activeViewers);
+    Socket.on('disconnect', () => {
+        ActiveViewers = Math.max(0, activeViewers - 1);
+        Io.emit('updateViewers', activeViewers);
     });
 });
 
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+Server.listen(PORT, () => {
+    Console.log(`Server running on port ${PORT}`);
 });
