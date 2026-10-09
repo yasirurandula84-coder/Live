@@ -31,6 +31,6 @@ jobs:
           drawtext=text='CRICKET_LIVE':fontcolor=white:fontsize=16:x=35:y=662" \
           -af "rubberband=pitch=1.02:tempo=1.0" \
           -c:v libx264 -preset ultrafast -tune zerolatency -fps_mode cfr -g 50 \
-          -b:v 800k -maxrate 1000k -bufsize 2000k -pix_fmt yuv420p \
+          -b:v 1000k -maxrate 2000k -bufsize 4000k -pix_fmt yuv420p \
           -c:a aac -b:a 96k -ar 44100 -ac 2 -async 1 -max_muxing_queue_size 99999 \
           -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"
