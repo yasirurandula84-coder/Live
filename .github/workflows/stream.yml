@@ -1,4 +1,4 @@
-name: YouTube Live Streamer
+Name: YouTube Live Streamer
 
 on:
   workflow_dispatch: # අපිට ඕන වෙලාවකට Manual එකෙන් Run කරන්න පුළුවන් වෙන්න
@@ -25,10 +25,10 @@ jobs:
           -fflags +discardcorrupt+genpts -probesize 15M -analyzeduration 5M \
           -i "https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/tracks-v1a1/mono.ts.m3u8" \
           -vf "setpts=0.998*PTS,scale=1280:720,eq=saturation=1.12:contrast=1.18,\
-          drawbox=x=1080:y=15:w=180:h=60:color=black@0.95:t=fill,\
-          drawtext=text='LIVE 24/7':fontcolor=yellow:fontsize=18:x=1115:y=33,\
+          drawbox=x=1060:y=10:w=210:h=95:color=black@0.98:t=fill,\
+          drawtext=text='LIVE_24_7':fontcolor=yellow:fontsize=18:x=1115:y=45,\
           drawbox=x=20:y=650:w=220:h=40:color=black@0.8:t=fill,\
-          drawtext=text='CRICKET LIVE':fontcolor=white:fontsize=16:x=35:y=662" \
+          drawtext=text='CRICKET_LIVE':fontcolor=white:fontsize=16:x=35:y=662" \
           -af "atempo=1.01,rubberband=pitch=1.05:tempo=1.0" \
           -c:v libx264 -preset ultrafast -tune zerolatency -fps_mode cfr -g 50 \
           -b:v 800k -maxrate 1000k -bufsize 2000k -pix_fmt yuv420p \
