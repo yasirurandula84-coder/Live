@@ -1,44 +1,32 @@
-name: Node.js YouTube Live Stream
+name: YouTube Live Streamer
 
 on:
-  workflow_dispatch: # Manual එකෙන් GitHub Dashboard එකෙන් Run කරන්න
+  workflow_dispatch: # අපිට ඕන වෙලාවකට Manual එකෙන් Run කරන්න පුළුවන් වෙන්න
 
 jobs:
-  run-stream:
+  stream:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
+      - name: Install FFmpeg and Rubberband
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg librubberband2
 
-    - name: Install Dependencies
-      run: |
-        npm install
-
-    - name: Install FFmpeg and Rubberband (Audio filter support)
-      run: |
-        sudo apt update
-        sudo apt install -y ffmpeg librubberband2
-
-    - name: Start Node.js Server in Background
-      run: |
-        # Background එකේ සර්වර් එක Run කරවයි
-        node index.js &
-        # සර්වර් එක Start වෙන්න තත්පර 5ක් ඉඳියි
-        sleep 5
-
-    - name: Trigger Live Stream Endpoint
-      run: |
-        # /start-live route එකට curl මඟින් request එක යවයි
-        curl -X POST http://localhost:3000/start-live
-
-    - name: Keep Runner Alive
-      # GitHub Actions එක එකපාරම Disconnect වෙන්න නොදී, Live එක දිගටම යන්න වෙලාව දෙන්න (උදාහරණයක් ලෙස පැය 5ක්)
-      run: |
-        echo "Live stream is running..."
-        sleep 18000
+      - name: Start Anti-Copyright Live Stream to YouTube
+        env:
+          YT_KEY: ${{ secrets.YT_KEY }}
+        run: |
+          echo "Starting Protected FFmpeg Live Stream..."
+          
+          ffmpeg -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
+          -fflags +discardcorrupt+genpts -probesize 15M -analyzeduration 5M \
+          -i "https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/tracks-v1a1/mono.ts.m3u8" \
+          -vf "setpts=0.998*PTS,crop=in_w-40:in_h-40:20:20,scale=1280:720,eq=saturation=1.12:contrast=1.18,drawbox=x=20:y=20:w=150:h=45:color=black@0.8:t=fill,drawtext=text=LIVE_STREAM:fontcolor=white:fontsize=18:x=35:y=32" \
+          -af "atempo=1.01,rubberband=pitch=1.05:tempo=1.0" \
+          -c:v libx264 -preset ultrafast -tune zerolatency -fps_mode cfr -g 50 \
+          -b:v 800k -maxrate 1000k -bufsize 2000k -pix_fmt yuv420p \
+          -c:a aac -b:a 96k -ar 44100 -ac 2 -max_muxing_queue_size 99999 \
+          -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"
