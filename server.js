@@ -17,7 +17,7 @@ app.use(express.json());
 
 let activeStreamProcess = null;
 
-// ප්‍රොක්සි රූට් එක
+// ප්‍රොක්සි රූට් එක (Stream link එක rewrite කර ගැනීමට)
 app.get('/proxy', async (req, res) => {
     let targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('Missing url');
@@ -56,19 +56,19 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
-// YouTube Live එක Copyright වලින් ආරක්ෂා කරමින් පටන් ගන්න රූට් එක
+// YouTube Live එක Copyright වලින් ආරක්ෂා කරමින් Dynamic Elements සමඟ පටන් ගන්න රූට් එක
 app.post('/start-live', (req, res) => {
     if (activeStreamProcess) {
         return res.status(400).send('A stream is already running! Stop it first.');
     }
 
-    const streamUrl = "https://tvsen7.aynascope.net/zY3hJ7pQ2vM5gD8s/index.m3u8";
+    const streamUrl = "https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/tracks-v1a1/mono.ts.m3u8";
     
-    // **මෙතැනට ඔයාගේ YouTube Stream Key එක දාන්න**
+    // **ඔයාගේ YouTube Stream Key එක මෙතැනට දාන්න**
     const youtubeStreamKey = "94xy-uqh4-g9hq-gxbz-2hza"; 
     const youtubeRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${youtubeStreamKey}`;
 
-    console.log('Starting Anti-Copyright YouTube Live streaming from:', streamUrl);
+    console.log('Starting Anti-Copyright YouTube Live streaming with Dynamic Elements from:', streamUrl);
 
     function startStream() {
         if (activeStreamProcess) {
@@ -89,12 +89,15 @@ app.post('/start-live', (req, res) => {
             .outputOptions([
                 '-sws_flags', 'fast_bilinear',
                 
-                // **Anti-Copyright & A Sports HD Logo Hiding Video Filters:**
-                '-vf', 'setpts=0.998*PTS,scale=1280:720,eq=saturation=1.12:contrast=1.18,' +
+                // **Advanced Anti-Copyright & Dynamic Moving Filters:**
+                '-vf', 'scale=1280:720,eq=saturation=1.12:contrast=1.18,' +
+                       // 1. Original TV Channel Logo එක වසන (Hide කරන) කළු Box එක
                        'drawbox=x=1060:y=10:w=210:h=95:color=black@0.98:t=fill,' +
                        'drawtext=text=LIVE_24_7:fontcolor=yellow:fontsize=18:x=1115:y=45,' +
-                       'drawbox=x=20:y=650:w=220:h=40:color=black@0.8:t=fill,' +
-                       'drawtext=text=CRICKET_LIVE:fontcolor=white:fontsize=16:x=35:y=662',
+                       
+                       // 2. පහළින් වමේ සිට දකුණට චලනය වන Dynamic Scrolling Ticker Text (AI Detection මඟහරින්න)
+                       'drawbox=x=0:y=665:w=1280:h=40:color=black@0.7:t=fill,' +
+                       'drawtext=text="● LIVE CRICKET MATCH STREAMING - ENJOY THE GAME":fontcolor=white:fontsize=16:x="1280-mod(t*120\\, 1600)":y=675',
             
                 // **Anti-Copyright Audio Filters:**
                 '-af', 'atempo=1.01,rubberband=pitch=1.05:tempo=1.0',
@@ -117,7 +120,7 @@ app.post('/start-live', (req, res) => {
             ])
             .output(youtubeRtmpUrl)
             .on('start', (commandLine) => {
-                console.log('Protected FFmpeg Stream spawned to YouTube:', commandLine);
+                console.log('Protected FFmpeg Stream spawned to YouTube with Dynamic Ticker:', commandLine);
             })
             .on('error', (err) => {
                 console.error('Streaming error encountered:', err.message);
@@ -143,7 +146,7 @@ app.post('/start-live', (req, res) => {
 
     startStream();
 
-    res.send('<h2>Protected YouTube Live stream started successfully! 🚀🔥</h2>');
+    res.send('<h2>Protected YouTube Live stream with Dynamic Ticker started successfully! 🚀🔥</h2>');
 });
 
 // ලයිව් එක නතර කරන්න රූට් එක
