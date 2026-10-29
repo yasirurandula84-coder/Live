@@ -1,4 +1,4 @@
-name: Stream Touchcric Match to Facebook (No BG Music & Proxy)
+name: Stream Touchcric Match to Facebook (Tapmad Fix & Proxy)
 
 on:
   workflow_dispatch:
@@ -65,23 +65,38 @@ jobs:
               }
             });
 
+            // Match Page Link
             await page.goto('https://footfytv.pro/watch/4527', {
               waitUntil: 'networkidle2'
             });
 
-            await new Promise(r => setTimeout(r, 6000));
+            // පේජ් එක සම්පූර්ණයෙන්ම ලෝඩ් වී බටන්ස් එනතෙක් තත්පර 10ක් රැඳී සිටීම
+            await new Promise(r => setTimeout(r, 10000));
 
+            // Tapmad server button එක වඩාත් නිවැරදිව සොයා ක්ලික් කිරීම සහ Fullscreen කිරීම
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span'));
-              const tapmadBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('tapmad'));
+              // සියලුම clickable elements සෙවීම
+              const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
+              
+              // 'tapmad' හෝ 'server' යන වචන අඩංගු බටන් එක සෙවීම
+              const tapmadBtn = elements.find(el => {
+                const text = el.textContent ? el.textContent.toLowerCase() : '';
+                return text.includes('tapmad') || text.includes('server 2') || text.includes('server');
+              });
               
               if (tapmadBtn) {
                 tapmadBtn.click();
+              } else {
+                console.log("Tapmad button not found via text, trying fallback...");
+                // වෙනත් ක්‍රමයකින් බටන් එක ක්ලික් කිරීම (첫번째 server item)
+                const firstServer = document.querySelector('.server-item, .server-list li, [data-server]');
+                if (firstServer) firstServer.click();
               }
 
-              await new Promise(resolve => setTimeout(resolve, 3000));
+              // වීඩියෝ එක ප්ලේ වී පූර්ණ තිරයට (Fullscreen) හැරීමට තව ටිකක් වේලාව තැබීම
+              await new Promise(resolve => setTimeout(resolve, 4000));
 
               const video = document.querySelector('video');
               if (video) {
@@ -99,9 +114,9 @@ jobs:
           EOF
 
           node launch.js > /dev/null 2>&1 &
-          sleep 18
+          sleep 20
 
-          # Background music නැතිව, මැච් එකේ ඕඩියෝ එක පමණක් ප්‍රොසෙසින් වන FFmpeg Command එක
+          # FFmpeg Streaming Command එක (SOCKS5 Proxy සමඟ)
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
             -f pulse -i default \
