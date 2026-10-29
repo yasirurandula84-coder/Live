@@ -1,4 +1,4 @@
-name: Stream Touchcric Match to Facebook (Direct WARP Fix)
+name: Stream Touchcric Match to Facebook (Custom SOCKS5 Proxy)
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Dependencies and Direct Cloudflare WARP
+      - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -24,30 +24,9 @@ jobs:
             pulseaudio \
             alsa-utils \
             fonts-dejavu-core \
-            curl \
-            wget \
-            gnupg
+            curl
             
           npm install puppeteer
-
-          # Cloudflare WARP හි නිල .deb පැකේජය කෙලින්ම ඩවුන්ලෝඩ් කර ඉන්ස්ටෝල් කිරීම (Repository Errors මඟහරවා ගැනීමට)
-          curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-          
-          # Ubuntu 24.04 (Noble) හෝ ඕනෑම වර්ෂන් එකකට කෙලින්ම ඩෙබ් ෆයිල් එක ඩවුන්ලෝඩ් කර දමමු
-          wget https://pkg.cloudflare.com/pool/main/c/cloudflare-warp/cloudflare-warp_2024.3.498-1_amd64.deb || wget https://pkg.cloudflare.com/pool/main/c/cloudflare-warp/cloudflare-warp_2023.3.452-1_amd64.deb || true
-          
-          if [ -f cloudflare-warp*.deb ]; then
-            sudo dpkg -i cloudflare-warp*.deb || sudo apt-get install -f -y
-          else
-            # Fallback a method if direct deb fails
-            echo "Direct deb fallback"
-          fi
-
-          # WARP SOCKS5 proxy සක්‍රීය කිරීම
-          sudo warp-cli --accept-tos registration new || true
-          sudo warp-cli --accept-tos mode proxy || true
-          sudo warp-cli --accept-tos proxy port 40000 || true
-          sudo warp-cli --accept-tos connect || true
 
           # Background music ඩවුන්ලෝඩ් කරගැනීම
           curl -L -o bgmusic.mp3 "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
@@ -125,7 +104,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # SOCKS5 Proxy හරහා Facebook වෙත ස්ථාවරව ස්ට්‍රීම් වන FFmpeg Command එක
+          # Custom SOCKS5 Proxy (202.62.55.95:1080) හරහා Facebook වෙත ස්ථාවරව ස්ට්‍රීම් වන FFmpeg Command එක
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
             -f pulse -i default \
@@ -138,6 +117,5 @@ jobs:
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 2 \
             -flvflags no_duration_filesize \
-            -http_proxy socks5://127.0.0.1:40000 \
+            -http_proxy socks5://202.62.55.95:1080 \
             -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}"
-            
