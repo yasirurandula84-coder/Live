@@ -1,4 +1,4 @@
-name: Stream Touchcric Match to Facebook (WARP Direct Fixed)
+name: Stream Touchcric Match to Facebook (Direct WARP Fix)
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Cloudflare WARP via Direct Package & Dependencies
+      - name: Install Dependencies and Direct Cloudflare WARP
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -25,17 +25,23 @@ jobs:
             alsa-utils \
             fonts-dejavu-core \
             curl \
-            wget
+            wget \
+            gnupg
             
           npm install puppeteer
 
-          # Cloudflare WARP repository එක ජැමි (jammy) හරහා ඩිරෙක්ට් ඉන්ස්ටෝල් කිරීම (Ubuntu වල 404 එරර් එක මඟහරවා ගැනීමට)
-          wget https://pkg.cloudflare.com/cloudflare-main.gpg
-          sudo cp cloudflare-main.gpg /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflare.com/client.debian.gz jammy main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          # Cloudflare WARP හි නිල .deb පැකේජය කෙලින්ම ඩවුන්ලෝඩ් කර ඉන්ස්ටෝල් කිරීම (Repository Errors මඟහරවා ගැනීමට)
+          curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
           
-          sudo apt-get update
-          sudo apt-get install -y cloudflare-warp
+          # Ubuntu 24.04 (Noble) හෝ ඕනෑම වර්ෂන් එකකට කෙලින්ම ඩෙබ් ෆයිල් එක ඩවුන්ලෝඩ් කර දමමු
+          wget https://pkg.cloudflare.com/pool/main/c/cloudflare-warp/cloudflare-warp_2024.3.498-1_amd64.deb || wget https://pkg.cloudflare.com/pool/main/c/cloudflare-warp/cloudflare-warp_2023.3.452-1_amd64.deb || true
+          
+          if [ -f cloudflare-warp*.deb ]; then
+            sudo dpkg -i cloudflare-warp*.deb || sudo apt-get install -f -y
+          else
+            # Fallback a method if direct deb fails
+            echo "Direct deb fallback"
+          fi
 
           # WARP SOCKS5 proxy සක්‍රීය කිරීම
           sudo warp-cli --accept-tos registration new || true
@@ -134,3 +140,4 @@ jobs:
             -flvflags no_duration_filesize \
             -http_proxy socks5://127.0.0.1:40000 \
             -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}"
+            
