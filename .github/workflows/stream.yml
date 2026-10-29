@@ -1,4 +1,4 @@
-name: Stream Touchcric Match to Facebook (WARP Proxy Stable)
+name: Stream Touchcric Match to Facebook (WARP Fix Stable)
 
 on:
   workflow_dispatch:
@@ -17,9 +17,9 @@ jobs:
 
       - name: Install Cloudflare WARP and Dependencies
         run: |
-          # Cloudflare WARP repository eka add kirima saha install kirima
-          curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflare.com/client.debian.gz $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          # Cloudflare GPG key saha direct repository setup kirima (Ubuntu Noble support)
+          curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg >/dev/null
+          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflare.com/client.debian.gz bookworm main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
           
           sudo apt-get update
           sudo apt-get install -y \
@@ -33,7 +33,7 @@ jobs:
             
           npm install puppeteer
 
-          # WARP service eka register karala connect kirima (IP eka wenas karaganeema)
+          # WARP service eka register karala connect kirima
           sudo warp-cli --accept-tos registration new || true
           sudo warp-cli --accept-tos mode proxy || true
           sudo warp-cli --accept-tos proxy port 40000 || true
