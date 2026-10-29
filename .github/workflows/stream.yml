@@ -112,7 +112,7 @@ jobs:
             -map_metadata -1 \
             -filter_complex "[0:v]crop=in_w-20:in_h-20:10:10,scale=1280:720,eq=brightness=0.06:contrast=1.90:saturation=1.50:gamma=1.20,hue=h=30:s=1.3,noise=alls=40:allf=t+u,unsharp=13:13:1.5:11:11:0.9,fps=30,setpts=0.995*PTS,drawtext=text=' SPORT RANUWA ':x=w-tw-25:y=25:fontsize=36:fontcolor=white:box=1:boxcolor=red@0.9:boxborderw=15,drawtext=text=' LIVE CRICKET STREAM 24/7 ':x='mod(t*55, w+200)-100':y=h-35:fontsize=20:fontcolor=white@0.95:box=1:boxcolor=black@0.8:boxborderw=4[v]; [1:a]asetrate=44100*0.67,aresample=44100,equalizer=f=250:width_type=h:width=800:g=-45,equalizer=f=5000:width_type=h:width=800:g=-40,aecho=0.8:0.85:50:0.35,volume=0.02[main_audio]; [2:a]volume=0.01[bg_audio]; [main_audio][bg_audio]amix=inputs=2:duration=first[a]" \
             -map "[v]" -map "[a]" \
-            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 1200k -maxrate 1500k -bufsize 3600k \
+            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 1500k -maxrate 1800k -bufsize 3600k \
             -max_muxing_queue_size 1024 \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -reconnect 1 \
