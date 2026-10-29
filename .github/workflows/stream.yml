@@ -1,4 +1,4 @@
-name: Stream Touchcric Match to Facebook (Custom SOCKS5 Proxy)
+name: Stream Touchcric Match to Facebook (Auto-Reconnect Proxy)
 
 on:
   workflow_dispatch:
@@ -104,7 +104,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # Custom SOCKS5 Proxy (202.62.55.95:1080) හරහා Facebook වෙත ස්ථාවරව ස්ට්‍රීම් වන FFmpeg Command එක
+          # Auto-Reconnect සහිත ශක්තිමත් FFmpeg Command එක
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
             -f pulse -i default \
@@ -115,7 +115,10 @@ jobs:
             -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 1500k -maxrate 1800k -bufsize 3600k \
             -max_muxing_queue_size 1024 \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
-            -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 2 \
+            -reconnect 1 \
+            -reconnect_streamed 1 \
+            -reconnect_delay_max 5 \
+            -reconnect_at_eof 1 \
             -flvflags no_duration_filesize \
             -http_proxy socks5://202.62.55.95:1080 \
             -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}"
