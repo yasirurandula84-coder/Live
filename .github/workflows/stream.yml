@@ -1,4 +1,4 @@
-name: Stream Touchcric Match to Facebook (WARP Fix Stable)
+name: Stream Touchcric Match to Facebook (WARP Direct Fixed)
 
 on:
   workflow_dispatch:
@@ -15,31 +15,35 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Cloudflare WARP and Dependencies
+      - name: Install Cloudflare WARP via Direct Package & Dependencies
         run: |
-          # Cloudflare GPG key saha direct repository setup kirima (Ubuntu Noble support)
-          curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg >/dev/null
-          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflare.com/client.debian.gz bookworm main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
-          
           sudo apt-get update
           sudo apt-get install -y \
-            cloudflare-warp \
             ffmpeg \
             xvfb \
             pulseaudio \
             alsa-utils \
             fonts-dejavu-core \
-            curl
+            curl \
+            wget
             
           npm install puppeteer
 
-          # WARP service eka register karala connect kirima
+          # Cloudflare WARP repository එක ජැමි (jammy) හරහා ඩිරෙක්ට් ඉන්ස්ටෝල් කිරීම (Ubuntu වල 404 එරර් එක මඟහරවා ගැනීමට)
+          wget https://pkg.cloudflare.com/cloudflare-main.gpg
+          sudo cp cloudflare-main.gpg /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflare.com/client.debian.gz jammy main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          
+          sudo apt-get update
+          sudo apt-get install -y cloudflare-warp
+
+          # WARP SOCKS5 proxy සක්‍රීය කිරීම
           sudo warp-cli --accept-tos registration new || true
           sudo warp-cli --accept-tos mode proxy || true
           sudo warp-cli --accept-tos proxy port 40000 || true
           sudo warp-cli --accept-tos connect || true
 
-          # Background music eka download karaganeema
+          # Background music ඩවුන්ලෝඩ් කරගැනීම
           curl -L -o bgmusic.mp3 "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
 
       - name: Start Virtual Display & Launch Puppeteer
@@ -69,7 +73,7 @@ jobs:
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
 
-            // Ads nisa aluthen open wena tabs block kirima
+            // Ads බ්ලොක් කිරීම
             browser.on('targetcreated', async (target) => {
               if (target.type() === 'page') {
                 const newPage = await target.page();
@@ -79,14 +83,12 @@ jobs:
               }
             });
 
-            // Match Page Link
             await page.goto('https://footfytv.pro/watch/4527', {
               waitUntil: 'networkidle2'
             });
 
             await new Promise(r => setTimeout(r, 6000));
 
-            // Tapmad server button click & fullscreen
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
@@ -117,7 +119,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # WARP SOCKS5 Proxy හරහා Facebook වෙත ස්ථාවරව ස්ට්‍රීම් වන FFmpeg Command එක
+          # SOCKS5 Proxy හරහා Facebook වෙත ස්ථාවරව ස්ට්‍රීම් වන FFmpeg Command එක
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
             -f pulse -i default \
