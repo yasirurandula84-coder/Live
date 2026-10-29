@@ -1,175 +1,131 @@
 const express = require('express');
-const path = require('path');
-const fetch = require('node-fetch');
-const http = require('http');
-const { Server } = require('socket.io');
-const ffmpeg = require('fluent-ffmpeg');
+const { spawn } = require('child_process');
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const https = require('https');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-
-const PORT = process.env.PORT || 3000;
-
-app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-let activeStreamProcess = null;
+let streamingProcess = null;
 
-// ප්‍රොක්සි රූට් එක (Stream link එක rewrite කර ගැනීමට)
-app.get('/proxy', async (req, res) => {
-    let targetUrl = req.query.url;
-    if (!targetUrl) return res.status(400).send('Missing url');
-
-    try {
-        const response = await fetch(targetUrl, {
-            headers: {
-                'User-Agent': 'VLC/3.0.20 LibVLC/3.0.20',
-                'Icy-MetaData': '1',
-                'Accept-Encoding': 'identity',
-                'Referer': 'https://www.itcnbd.live/'
-            }
-        });
-        response.headers.forEach((v, n) => res.setHeader(n, v));
-        res.status(response.status);
-
-        if (targetUrl.endsWith('.m3u8')) {
-            const text = await response.text();
-            const rewritten = text.split('\n').map(line => {
-                line = line.trim();
-                if (line && !line.startsWith('#')) {
-                    let absoluteUrl = line;
-                    if (!line.startsWith('http')) {
-                        const urlObj = new URL(targetUrl);
-                        absoluteUrl = `${urlObj.origin}${line.startsWith('/') ? '' : '/'}${line}`;
-                    }
-                    return `/proxy?url=${encodeURIComponent(absoluteUrl)}`;
-                }
-                return line;
-            }).join('\n');
-            return res.send(rewritten);
-        }
-        response.body.pipe(res);
-    } catch (err) {
-        res.status(500).send('Proxy error');
-    }
+// Web interface ekata yaddi penena page eka
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Cricket Streamer Control Panel</title>
+        <style>
+            body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; padding-top: 50px; }
+            .card { background: #1e1e1e; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+            input { width: 300px; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
+            button { background: #ff4757; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
+            button:hover { background: #ff6b81; }
+            .status { margin-top: 15px; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h2>Facebook Cricket Streamer</h2>
+            <form action="/start" method="POST">
+                <label>Enter Facebook Stream Key:</label><br>
+                <input type="text" name="fb_key" required placeholder="Paste FB Stream Key here"><br>
+                <button type="submit">Start Live Stream</button>
+            </form>
+            <form action="/stop" method="POST" style="margin-top: 15px;">
+                <button type="submit" style="background: #2ed573;">Stop Stream</button>
+            </form>
+            <div class="status">System Status: Ready</div>
+        </div>
+    </body>
+    </html>
+  `);
 });
 
-// YouTube Live එක Copyright වලින් ආරක්ෂා කරමින් Dynamic Elements සමඟ පටන් ගන්න රූට් එක
-app.post('/start-live', (req, res) => {
-    if (activeStreamProcess) {
-        return res.status(400).send('A stream is already running! Stop it first.');
-    }
+// Stream eka start kirima
+app.post('/start', async (req, res) => {
+  const fbKey = req.body.fb_key;
+  if (!fbKey) return res.send('Stream key is required! <a href="/">Go Back</a>');
 
-    const streamUrl = "https://tvsen6.aynaott.com/zv68oqPDu7MZZwmHhRxt/tracks-v1a1/mono.ts.m3u8";
-    
-    // **ඔයාගේ YouTube Stream Key එක මෙතැනට දාන්න**
-    const youtubeStreamKey = "94xy-uqh4-g9hq-gxbz-2hza"; 
-    const youtubeRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${youtubeStreamKey}`;
+  if (streamingProcess) {
+    return res.send('Stream is already running! <a href="/">Go Back</a>');
+  }
 
-    console.log('Starting Anti-Copyright YouTube Live streaming with Dynamic Elements from:', streamUrl);
+  res.send('Stream starting command sent! Check your Facebook page. <a href="/">Go Back</a>');
 
-    function startStream() {
-        if (activeStreamProcess) {
-            try { activeStreamProcess.kill('SIGKILL'); } catch(e) {}
-            activeStreamProcess = null;
-        }
-
-        const command = ffmpeg(streamUrl)
-            .inputOptions([
-                '-re',
-                '-reconnect 1',
-                '-reconnect_streamed 1',
-                '-reconnect_delay_max 5',
-                '-fflags +discardcorrupt+genpts+nobuffer',
-                '-probesize 50M',
-                '-analyzeduration 20M'
-            ])
-            .outputOptions([
-                '-sws_flags', 'fast_bilinear',
-                
-                // **Advanced Anti-Copyright & Dynamic Moving Filters:**
-                '-vf', 'scale=1280:720,eq=saturation=1.12:contrast=1.18,' +
-                       // 1. Original TV Channel Logo එක වසන (Hide කරන) කළු Box එක
-                       'drawbox=x=1060:y=10:w=210:h=95:color=black@0.98:t=fill,' +
-                       'drawtext=text=LIVE_24_7:fontcolor=yellow:fontsize=18:x=1115:y=45,' +
-                       
-                       // 2. පහළින් වමේ සිට දකුණට චලනය වන Dynamic Scrolling Ticker Text (AI Detection මඟහරින්න)
-                       'drawbox=x=0:y=665:w=1280:h=40:color=black@0.7:t=fill,' +
-                       'drawtext=text="● LIVE CRICKET MATCH STREAMING - ENJOY THE GAME":fontcolor=white:fontsize=16:x="1280-mod(t*120\\, 1600)":y=675',
-            
-                // **Anti-Copyright Audio Filters:**
-                '-af', 'atempo=1.01,rubberband=pitch=1.05:tempo=1.0',
-
-                '-threads', '4',               
-                '-r', '25',                    
-                '-c:v', 'libx264',
-                '-preset', 'ultrafast',        
-                '-tune', 'zerolatency',
-                '-b:v', '1000k',               
-                '-maxrate', '1400k',
-                '-bufsize', '2800k',
-                '-pix_fmt', 'yuv420p',
-                '-g', '50',                    
-                '-c:a', 'aac',
-                '-b:a', '128k',
-                '-ar', '44100',
-                '-max_muxing_queue_size', '9999',
-                '-f', 'flv'
-            ])
-            .output(youtubeRtmpUrl)
-            .on('start', (commandLine) => {
-                console.log('Protected FFmpeg Stream spawned to YouTube with Dynamic Ticker:', commandLine);
-            })
-            .on('error', (err) => {
-                console.error('Streaming error encountered:', err.message);
-                if (activeStreamProcess) {
-                    setTimeout(() => {
-                        console.log('Attempting to restart stream after error...');
-                        startStream();
-                    }, 3000);
-                }
-            })
-            .on('end', () => {
-                console.log('Streaming finished. Restarting automatically...');
-                if (activeStreamProcess) {
-                    setTimeout(() => {
-                        startStream();
-                    }, 2000);
-                }
-            });
-
-        command.run();
-        activeStreamProcess = command;
-    }
-
-    startStream();
-
-    res.send('<h2>Protected YouTube Live stream with Dynamic Ticker started successfully! 🚀🔥</h2>');
-});
-
-// ලයිව් එක නතර කරන්න රූට් එක
-app.get('/stop-live', (req, res) => {
-    if (activeStreamProcess) {
-        activeStreamProcess.kill('SIGKILL');
-        activeStreamProcess = null;
-        res.send('<h2>Live stream stopped successfully.</h2>');
-    } else {
-        res.status(400).send('No active stream running.');
-    }
-});
-
-let activeViewers = 0;
-io.on('connection', (socket) => {
-    activeViewers++;
-    io.emit('updateViewers', activeViewers);
-    socket.on('disconnect', () => {
-        activeViewers = Math.max(0, activeViewers - 1);
-        io.emit('updateViewers', activeViewers);
+  // Background music eka download karaganeema if not exists
+  if (!fs.existsSync('bgmusic.mp3')) {
+    const file = fs.createWriteStream("bgmusic.mp3");
+    https.get("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3", response => {
+      response.pipe(file);
     });
+  }
+
+  // Puppeteer script eka run karana eka
+  const puppeteerScript = `
+  const puppeteer = require('puppeteer');
+  (async () => {
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--window-size=1280,720', '--autoplay-policy=no-user-gesture-required']
+    });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 720 });
+    await page.goto('https://footfytv.pro/watch/4527', { waitUntil: 'networkidle2' });
+    await new Promise(r => setTimeout(r, 6000));
+    await page.evaluate(async () => {
+      const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span'));
+      const tapmadBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('tapmad'));
+      if (tapmadBtn) tapmadBtn.click();
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      const video = document.querySelector('video');
+      if (video) { video.muted = false; video.volume = 1.0; }
+    });
+  })();
+  `;
+  fs.writeFileSync('run_puppeteer.js', puppeteerScript);
+  spawn('node', ['run_puppeteer.js']);
+
+  setTimeout(() => {
+    // FFmpeg Stream Command
+    const ffmpegArgs = [
+      '-y',
+      '-f', 'x11grab', '-framerate', '30', '-video_size', '1280x720', '-i', ':99.0',
+      '-f', 'pulse', '-i', 'default',
+      '-stream_loop', '-1', '-i', 'bgmusic.mp3',
+      '-map_metadata', '-1',
+      '-filter_complex', '[0:v]crop=in_w-20:in_h-20:10:10,scale=1280:720,eq=brightness=0.06:contrast=1.90:saturation=1.50:gamma=1.20,hue=h=30:s=1.3,noise=alls=40:allf=t+u,unsharp=13:13:1.5:11:11:0.9,fps=30,setpts=0.995*PTS,drawtext=text=\' SPORT RANUWA \':x=w-tw-25:y=25:fontsize=36:fontcolor=white:box=1:boxcolor=red@0.9:boxborderw=15,drawtext=text=\' LIVE CRICKET STREAM 24/7 \':x=\'mod(t*55, w+200)-100\':y=h-35:fontsize=20:fontcolor=white@0.95:box=1:boxcolor=black@0.8:boxborderw=4[v]; [1:a]asetrate=44100*0.67,aresample=44100,equalizer=f=250:width_type=h:width=800:g=-45,equalizer=f=5000:width_type=h:width=800:g=-40,aecho=0.8:0.85:50:0.35,volume=0.02[main_audio]; [2:a]volume=0.01[bg_audio]; [main_audio][bg_audio]amix=inputs=2:duration=first[a]',
+      '-map', '[v]', '-map', '[a]',
+      '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-g', '60', '-keyint_min', '60', '-b:v', '1500k', '-maxrate', '1800k', '-bufsize', '3600k',
+      '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-ac', '2',
+      '-flvflags', 'no_duration_filesize',
+      '-f', 'flv', `rtmps://live-api-s.facebook.com:443/rtmp/${fbKey}`
+    ];
+
+    streamingProcess = spawn('ffmpeg', ffmpegArgs);
+
+    streamingProcess.on('close', (code) => {
+      console.log(`FFmpeg process exited with code ${code}`);
+      streamingProcess = null;
+    });
+  }, 10000);
 });
 
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Stream eka nawatvima
+app.post('/stop', (req, res) => {
+  if (streamingProcess) {
+    streamingProcess.kill('SIGKILL');
+    streamingProcess = null;
+    res.send('Stream stopped successfully! <a href="/">Go Back</a>');
+  } else {
+    res.send('No active stream found. <a href="/">Go Back</a>');
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
