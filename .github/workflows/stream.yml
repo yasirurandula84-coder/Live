@@ -109,7 +109,7 @@ jobs:
               drawtext=text='%{localtime\:%H\:%M\:%S}':x=w-130:y=60:fontsize=20:fontcolor=white:box=1:boxcolor=red@0.8:boxborderw=5,\
               drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM SPORTS':x=W-280:y=48:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.9:boxborderw=10,\
               drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM SPORTS':x=W-280:y='if(lt(mod(t,10),1), -30+78*mod(t,10), 48)':fontsize=24:fontcolor=white:enable='between(mod(t,10),0,2)'[v]; \
-              [1:a]asetrate=44100*0.99,aresample=44100,atempo=1.01,volume=1.0[a]" \
+              [1:a]asetrate=44100*0.99,aresample=44100,atempo=1.11,volume=1.0[a]" \
               -map "[v]" -map "[a]" \
               -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 700k -maxrate 900k -bufsize 1800k \
               -max_muxing_queue_size 4096 \
