@@ -1,4 +1,4 @@
-name: Stream Touchcric Match to Facebook (Lower Down Logo)
+name: Stream Touchcric Match to Facebook (Stable Connection Fix)
 
 on:
   workflow_dispatch:
@@ -94,6 +94,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
+          # ස්ථාවර Bitrate සහ වැඩි දියුණු කළ Reconnect සැකසුම් සහිත FFmpeg කමාන්ඩ් එක
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
             -f pulse -i default \
@@ -108,14 +109,14 @@ jobs:
             [2:a]volume=0.08[bg_audio]; \
             [main_audio][bg_audio]amix=inputs=2:duration=longest:dropout_transition=2[a]" \
             -map "[v]" -map "[a]" \
-            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1100k -maxrate 1300k -bufsize 2600k \
-            -max_muxing_queue_size 1024 \
+            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 900k -maxrate 1100k -bufsize 2200k \
+            -max_muxing_queue_size 2048 \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-            -rw_timeout 15000000 \
+            -rw_timeout 20000000 \
             -reconnect 1 \
             -reconnect_streamed 1 \
-            -reconnect_delay_max 2 \
+            -reconnect_delay_max 5 \
             -reconnect_at_eof 1 \
             -flvflags no_duration_filesize \
             -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}"
