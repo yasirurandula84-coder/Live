@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (TNT Sports Auto-Click & Anti-Copyright)
+name: Stream Match to Facebook (TNT Sports Selector Fix)
 
 on:
   workflow_dispatch:
@@ -57,7 +57,6 @@ jobs:
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
 
-            // අනවශ්‍ය ඇඩ් ටැබ් විවෘත වීම වැළැක්වීමට
             browser.on('targetcreated', async (target) => {
               if (target.type() === 'page') {
                 const newPage = await target.page();
@@ -73,36 +72,30 @@ jobs:
 
             await new Promise(r => setTimeout(r, 6000));
 
-            // TNT Sports සර්වර් බට්න් එක සොයාගෙන ක්ලික් කිරීම සහ වීඩියෝව ප්ලේ කිරීම
+            // TNT Sports සර්වර් බට්න් එක ක්ලික් කිරීම
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              // TNT Sports server button එක හොයාගෙන ක්ලික් කරන ශ්‍රිතය
-              const clickTNTServer = () => {
-                const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
-                const tntBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('tnt'));
+              const clickTNT = () => {
+                const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
+                const tntBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('tnt'));
                 
                 if (tntBtn) {
                   tntBtn.click();
-                  console.log('TNT Sports server clicked!');
+                  console.log('TNT Sports server clicked successfully!');
                   return true;
                 }
                 return false;
               };
 
-              // මුලින්ම TNT සර්වර් බට්න් එක ක්ලික් කරන්න උත්සාහ කරයි
-              let clicked = clickTNTServer();
-              if (!clicked) {
-                const altBtn = document.querySelector('[data-server*="tnt"], .server-tnt');
-                if (altBtn) altBtn.click();
-              }
-
-              // තවත් වතාවක් තත්පර කිහිපයකින් ක්ලික් කිරීම (ਲෝඩ් වීමට ගතවන කාලය සඳහා)
+              let clicked = clickTNT();
+              
+              // තව වතාවක් ට්‍රයි කිරීම (ਲෝඩින් ප්‍රමාද වුණොත්)
               setTimeout(() => {
-                clickTNTServer();
+                if (!clicked) clickTNT();
               }, 4000);
 
-              // වීඩියෝ එක ප්ලේ වී ෆුල්ස්ක්‍රීන් වීම සඳහා
+              // වීඩියෝ එක ප්ලේ වී ෆුල්ස්ක්‍රීන් වීම
               setTimeout(async () => {
                 const video = document.querySelector('video');
                 if (video) {
