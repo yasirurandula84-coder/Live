@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Tapmad Server Auto-Click & Anti-Copyright)
+name: Stream Match to Facebook (TNT Sports Auto-Click & Anti-Copyright)
 
 on:
   workflow_dispatch:
@@ -67,40 +67,39 @@ jobs:
               }
             });
 
-            await page.goto('https://footfytv.pro/watch/4527', {
+            await page.goto('https://footfytv.pro/watch/4726', {
               waitUntil: 'networkidle2'
             });
 
             await new Promise(r => setTimeout(r, 6000));
 
-            // Tapmad සර්වර් බට්න් එක සොයාගෙන ක්ලික් කිරීම සහ වීඩියෝව ප්ලේ කිරීම
+            // TNT Sports සර්වර් බට්න් එක සොයාගෙන ක්ලික් කිරීම සහ වීඩියෝව ප්ලේ කිරීම
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              // Tapmad server button එක හොයාගෙන ක්ලික් කරන ශ්‍රිතය
-              const clickTapmadServer = () => {
-                const buttons = Array.from(document.querySelectorAll('button, a, div, span'));
-                const tapmadBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('tapmad'));
+              // TNT Sports server button එක හොයාගෙන ක්ලික් කරන ශ්‍රිතය
+              const clickTNTServer = () => {
+                const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
+                const tntBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('tnt'));
                 
-                if (tapmadBtn) {
-                  tapmadBtn.click();
-                  console.log('Tapmad server clicked!');
+                if (tntBtn) {
+                  tntBtn.click();
+                  console.log('TNT Sports server clicked!');
                   return true;
                 }
                 return false;
               };
 
-              // මුලින්ම ටැප්මැඩ් බට්න් එක ක්ලික් කරන්න උත්සාහ කරයි
-              let clicked = clickTapmadServer();
+              // මුලින්ම TNT සර්වර් බට්න් එක ක්ලික් කරන්න උත්සාහ කරයි
+              let clicked = clickTNTServer();
               if (!clicked) {
-                // සර්වර් ලිස්ට් එකේ වෙනත් නම් වලින් තිබිය හැක නම් ඒවාද පරීක්ෂා කරයි
-                const altBtn = document.querySelector('[data-server*="tapmad"], .server-tapmad, text="Tapmad"');
+                const altBtn = document.querySelector('[data-server*="tnt"], .server-tnt');
                 if (altBtn) altBtn.click();
               }
 
               // තවත් වතාවක් තත්පර කිහිපයකින් ක්ලික් කිරීම (ਲෝඩ් වීමට ගතවන කාලය සඳහා)
               setTimeout(() => {
-                clickTapmadServer();
+                clickTNTServer();
               }, 4000);
 
               // වීඩියෝ එක ප්ලේ වී ෆුල්ස්ක්‍රීන් වීම සඳහා
