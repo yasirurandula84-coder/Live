@@ -1,4 +1,4 @@
-name: Stream Touchcric Match to Facebook (Stable Buffer & Fix Action Failed)
+name: Stream Touchcric Match to Facebook (A/V Sync Fix)
 
 on:
   workflow_dispatch:
@@ -36,7 +36,6 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
-          # PulseAudio බෆර් සහ ක්‍රෑෂ් වීම වැළැක්වීමේ ස්ථාවර සැකසුම
           pulseaudio --start --exit-idle-time=-1 || true
           pactl load-module module-null-sink sink_name=virtual_sink || true
           pactl set-default-sink virtual_sink || true
@@ -61,7 +60,6 @@ jobs:
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
 
-            // Ads බ්ලොක් කිරීම
             browser.on('targetcreated', async (target) => {
               if (target.type() === 'page') {
                 const newPage = await target.page();
@@ -80,7 +78,6 @@ jobs:
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              // TNT Sports සර්වර් බට්න් එක සොයාගෙන ක්ලික් කිරීම
               const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
               const tntBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('tnt'));
               
@@ -108,7 +105,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # FFmpeg කමාන්ඩ් එක (ඔයාගේ මුල් ෆිල්ටර්ස් එලෙසම ඇත, බෆර් සහ ස්ට්‍රෝබ් ප්‍රශ්න පමණක් ෆික්ස් කර ඇත)
+          # FFmpeg කමාන්ඩ් එක (ඔයාගේ මුල් ෆිල්ටර්ස් එලෙසම ඇත, සවුන්ඩ් සහ වීඩියෝ සින්ක් කිරීම සඳහා -async 1 සහ -vsync cfr එකතු කර ඇත)
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i default \
@@ -125,6 +122,7 @@ jobs:
             -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 900k -maxrate 1100k -bufsize 2200k \
             -max_muxing_queue_size 4096 \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            -async 1 -vsync cfr \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -rw_timeout 30000000 \
             -reconnect 1 \
