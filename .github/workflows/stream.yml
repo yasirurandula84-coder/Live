@@ -1,4 +1,4 @@
-name: Stream Touchcric Match to Facebook (No-Flip Anti-Copyright Loop)
+name: Stream Touchcric Match to Facebook (Robotic Audio & Auto Refresh)
 
 on:
   workflow_dispatch:
@@ -91,14 +91,14 @@ jobs:
           })();
           EOF
 
-          # විනාඩි 3කට වතාවක් බ්‍රව්සරය සහ ස්ට්‍රීම් එක ඔටෝ රීෆ්‍රෙෂ් කරන ලූප් එක
+          # Winadi 3kin winadita auto refresh wena loop eka
           while true; do
-            echo "Starting No-Flip Anti-Copyright Stream Session..."
+            echo "Starting Robotic Audio Stream Session..."
             node launch.js > /dev/null 2>&1 &
             NODE_PID=$!
             sleep 15
 
-            # Flip නොකර, වර්ණ, පැ딩 සහ ඕඩියෝ වෙනස්කම් සහිත FFmpeg කමාන්ඩ් එක (තත්පර 180න් රීස්ටාර්ට් වේ)
+            # Audio eka robola wage (pitch bend / rubberband effect) karana FFmpeg command eka
             ffmpeg -y \
               -t 180 \
               -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
@@ -109,7 +109,7 @@ jobs:
               drawtext=text='%{localtime\:%H\:%M\:%S}':x=w-130:y=60:fontsize=20:fontcolor=white:box=1:boxcolor=red@0.8:boxborderw=5,\
               drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM SPORTS':x=W-280:y=48:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.9:boxborderw=10,\
               drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM SPORTS':x=W-280:y='if(lt(mod(t,10),1), -30+78*mod(t,10), 48)':fontsize=24:fontcolor=white:enable='between(mod(t,10),0,2)'[v]; \
-              [1:a]asetrate=44100*0.99,aresample=44100,atempo=1.11,volume=1.0[a]" \
+              [1:a]asetrate=44100*1.12,aresample=44100,atempo=0.89,volume=1.0[a]" \
               -map "[v]" -map "[a]" \
               -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 700k -maxrate 900k -bufsize 1800k \
               -max_muxing_queue_size 4096 \
@@ -123,10 +123,10 @@ jobs:
               -flvflags no_duration_filesize \
               -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}" || true
 
-            # සැසිය අවසානයේ රැම් එක සම්පූර්ණයෙන්ම පිරිසිදු කිරීම
+            # Memory clear karala aluth session ekata yanne meken
             kill $NODE_PID 2>/dev/null || true
             pkill -f chrome 2>/dev/null || true
-            pkill -f node 2>/dev/null || කිරීම || true
+            pkill -f node 2>/dev/null || true
             sleep 3
             echo "Memory cleared. Starting next session..."
           done
