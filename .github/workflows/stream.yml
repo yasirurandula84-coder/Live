@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (TNT Sports Selector Fix)
+name: Stream Match to Facebook (Fullscreen & TNT Sports Fix)
 
 on:
   workflow_dispatch:
@@ -72,7 +72,7 @@ jobs:
 
             await new Promise(r => setTimeout(r, 6000));
 
-            // TNT Sports සර්වර් බට්න් එක ක්ලික් කිරීම
+            // TNT සර්වර් බට්න් එක ක්ලික් කර ස්වයංක්‍රීයව ෆුල්ස්ක්‍රීන් කිරීම
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
@@ -90,24 +90,29 @@ jobs:
 
               let clicked = clickTNT();
               
-              // තව වතාවක් ට්‍රයි කිරීම (ਲෝඩින් ප්‍රමාද වුණොත්)
               setTimeout(() => {
                 if (!clicked) clickTNT();
               }, 4000);
 
-              // වීඩියෝ එක ප්ලේ වී ෆුල්ස්ක්‍රීන් වීම
+              // වීඩියෝ එක ලෝඩ් වී නිසි ලෙස Full Screen වීම සඳහා
               setTimeout(async () => {
                 const video = document.querySelector('video');
                 if (video) {
                   video.muted = false;
                   video.volume = 1.0;
-                  if (video.requestFullscreen) {
-                    video.requestFullscreen();
+
+                  // ප්ලේයර් කන්ටේනර් එක හෝ වීඩියෝ එලිමන්ට් එක ෆුල්ස්ක්‍රීන් ඉල්ලීම
+                  const playerContainer = video.closest('.player-container') || video.parentElement || video;
+                  
+                  if (playerContainer.requestFullscreen) {
+                    await playerContainer.requestFullscreen();
+                  } else if (video.requestFullscreen) {
+                    await video.requestFullscreen();
                   } else if (video.webkitRequestFullscreen) {
-                    video.webkitRequestFullscreen();
+                    await video.webkitRequestFullscreen();
                   }
                 }
-              }, 8000);
+              }, 9000);
             });
           })();
           EOF
@@ -125,9 +130,9 @@ jobs:
             drawtext=text='%{localtime\:%H\:%M\:%S}':x=w-130:y=60:fontsize=20:fontcolor=white:box=1:boxcolor=red@0.8:boxborderw=5,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM SPORTS':x=W-280:y=48:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.9:boxborderw=10,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM SPORTS':x=W-280:y='if(lt(mod(t,10),1), -30+78*mod(t,10), 48)':fontsize=24:fontcolor=white:enable='between(mod(t,10),0,2)'[v]; \
-            [1:a]asetrate=44100*1.15,aresample=44100,atempo=0.87,volume=1.0[a]" \
+            [1:a]asetrate=44100*1.15,aresample=44100,atempo=0.67,volume=0.5[a]" \
             -map "[v]" -map "[a]" \
-            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 700k -maxrate 900k -bufsize 1800k \
+            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1200k -maxrate 1500k -bufsize 1800k \
             -max_muxing_queue_size 4096 \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
