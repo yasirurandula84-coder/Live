@@ -1,4 +1,4 @@
-name: Stream Touchcric Match to Facebook (Stable Connection Fix)
+name: Stream Touchcric Match to Facebook (Stable Audio & Buffer Fix)
 
 on:
   workflow_dispatch:
@@ -35,7 +35,10 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
-          pulseaudio --start || true
+          # PulseAudio ස්ථාවරව ආරම්භ කිරීම සහ බෆර් ගැටලු විසඳීම
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_sink || true
+          pactl set-default-sink virtual_sink || true
 
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
@@ -66,7 +69,7 @@ jobs:
               }
             });
 
-            await page.goto('https://footfytv.pro/watch/4728', {
+            await page.goto('https://footfytv.pro/watch/4527', {
               waitUntil: 'networkidle2'
             });
 
@@ -94,10 +97,10 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # ස්ථාවර Bitrate සහ වැඩි දියුණු කළ Reconnect සැකසුම් සහිත FFmpeg කමාන්ඩ් එක
+          # වැඩිදියුණු කළ ශ්‍රව්‍ය බෆරින් සහ ස්ථාවර FFmpeg කමාන්ඩ් එක
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
-            -f pulse -i default \
+            -f pulse -ar 44100 -ac 2 -i default \
             -stream_loop -1 -i bgmusic.mp3 \
             -map_metadata -1 \
             -filter_complex "[0:v]crop=in_w-20:in_h-20:10:10,scale=1280:720,eq=brightness=0.05:contrast=1.85:saturation=1.45:gamma=1.15,hue=h=25:s=1.25,noise=alls=35:allf=t+u,fps=29.97,\
@@ -105,19 +108,18 @@ jobs:
             drawtext=text='%{localtime\:%H\:%M\:%S}':x=w-130:y=60:fontsize=20:fontcolor=white:box=1:boxcolor=red@0.8:boxborderw=5,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM SPORTS':x=W-280:y=48:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.9:boxborderw=10,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM SPORTS':x=W-280:y='if(lt(mod(t,10),1), -30+78*mod(t,10), 48)':fontsize=24:fontcolor=white:enable='between(mod(t,10),0,2)'[v]; \
-            [1:a]asetrate=44100*0.96,aresample=44100,volume=1.0[main_audio]; \
+            [1:a]asetrate=44100,aresample=44100,volume=1.0[main_audio]; \
             [2:a]volume=0.08[bg_audio]; \
-            [main_audio][bg_audio]amix=inputs=2:duration=longest:dropout_transition=2[a]" \
+            [main_audio][bg_audio]amix=inputs=2:duration=longest:dropout_transition=5[a]" \
             -map "[v]" -map "[a]" \
             -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 900k -maxrate 1100k -bufsize 2200k \
-            -max_muxing_queue_size 2048 \
+            -max_muxing_queue_size 4096 \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-            -rw_timeout 20000000 \
+            -rw_timeout 30000000 \
             -reconnect 1 \
             -reconnect_streamed 1 \
-            -reconnect_delay_max 5 \
+            -reconnect_delay_max 10 \
             -reconnect_at_eof 1 \
             -flvflags no_duration_filesize \
             -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}"
-            
