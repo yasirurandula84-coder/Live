@@ -121,7 +121,7 @@ jobs:
             [2:a]volume=0.08[bg_audio]; \
             [main_audio][bg_audio]amix=inputs=2:duration=longest:dropout_transition=5[a]" \
             -map "[v]" -map "[a]" \
-            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 700k -maxrate 900k -bufsize 1800k \
+            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1200k -maxrate 1500k -bufsize 1800k \
             -max_muxing_queue_size 4096 \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
