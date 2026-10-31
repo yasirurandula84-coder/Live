@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Full Audio & Visual Effects)
+name: Stream Match to Facebook (Voice Effects Only)
 
 on:
   workflow_dispatch:
@@ -28,9 +28,6 @@ jobs:
             curl
             
           npm install puppeteer
-
-          # පසුබිම් ශබ්දය (Audience/Stadium background music) සඳහා ඕඩියෝ ဖိုင် එකක් ඩවුන්ලෝඩ් කර ගැනීම
-          curl -L -o bgmusic.mp3 "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
 
       - name: Start Virtual Display & Stream
         run: |
@@ -108,11 +105,10 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # FFmpeg ස්ට්‍රීම් කිරීම (වටින් ක්‍රොප් කර ලෝගෝ වැසීම, අමතර ඕවර්ලේ සහ හඬ සංස්කරණය)
+          # FFmpeg ස්ට්‍රීම් කිරීම (පසුබිම් සංගීතය ඉවත් කර, හඬ පමණක් Chipmunk සහ Echo ලෙස වෙනස් කර ඇත)
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-            -stream_loop -1 -i bgmusic.mp3 \
             -map_metadata -1 \
             -filter_complex "[0:v]crop=in_w-30:in_h-30:15:15,scale=1280:720,eq=brightness=0.02:contrast=1.08:saturation=1.05:gamma=1.0,fps=29.97,\
             drawbox=x=1010:y=70:w=250:h=75:color=black:t=fill,\
@@ -122,9 +118,7 @@ jobs:
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SHARE NOW & LIKE THE STREAM':x=50:y='150 + sin(t*5)*12':fontsize=26:fontcolor=yellow:box=1:boxcolor=blue@0.8:boxborderw=6,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='⚡ OFFICIAL HD BROADCAST • JOIN WITH US ⚡':x='w-mod(t*100, w+800)':y=15:fontsize=16:fontcolor=cyan:box=1:boxcolor=black@0.8:boxborderw=4,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='MATCH CONTINUOUSLY LIVE':x=50:y=h-70:fontsize=16:fontcolor=white:box=1:boxcolor=green@0.8:boxborderw=4[v]; \
-            [1:a]asetrate=44100*1.18,aresample=44100,atempo=0.85,aecho=0.8:0.88:60|120:0.4|0.3,volume=1.5[main_audio]; \
-            [2:a]volume=0.12[bg_audio]; \
-            [main_audio][bg_audio]amix=inputs=2:duration=longest:dropout_transition=2[a]" \
+            [1:a]asetrate=44100*1.18,aresample=44100,atempo=0.85,aecho=0.8:0.88:60|120:0.4|0.3,volume=1.5[a]" \
             -map "[v]" -map "[a]" \
             -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 700k -maxrate 900k -bufsize 1800k \
             -max_muxing_queue_size 4096 \
