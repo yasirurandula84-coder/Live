@@ -68,7 +68,7 @@ jobs:
               }
             });
 
-            await page.goto('https://footfytv.pro/watch/5055', {
+            await page.goto('https://footfytv.pro/watch/4728', {
               waitUntil: 'networkidle2'
             });
 
