@@ -62,32 +62,28 @@ jobs:
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
 
-            // 1. මුලින්ම Facebook Login පේජ් එකට යෑම
+            // 1. Facebook Login
             console.log('Navigating to Facebook login...');
             await page.goto('https://www.facebook.com/login', {
               waitUntil: 'networkidle2'
             });
 
-            // 2. Email සහ Password ඔටෝ ටයිප් කිරීම
-            console.log('Entering credentials...');
             await page.type('#email', process.env.FB_EMAIL, { delay: 50 });
             await page.type('#pass', process.env.FB_PASS, { delay: 50 });
-            
-            // 3. Login බටන් එක ක්ලික් කිරීම
             await page.click('#loginbutton');
             
-            // ලොග් වී හෝම් පේජ් එකට හෝ රීඩිරෙක්ට් වෙන්න තත්පර 10ක් ඉඳීම
             await new Promise(r => setTimeout(r, 10000));
             console.log('Login completed. Going to target video link...');
 
-            // 4. දැන් අදාළ ශෙයා කළ ලින්ක් එකට යෑම
+            // 2. Target Video Link (Shared Post)
             await page.goto('https://www.facebook.com/61576526910808/posts/122133871064884230/?mibextid=rS40aB7S9Ucbxw6v', {
               waitUntil: 'networkidle2'
             });
 
-            // වීඩියෝව ලෝඩ් වීමට තත්පර 12ක් ඉඳීම
-            await new Promise(r => setTimeout(r, 12000));
+            // වීඩියෝව පූර්ණ ලෙස ලෝඩ් වීමට තත්පර 15ක් ඉඳීම
+            await new Promise(r => setTimeout(r, 15000));
 
+            // 3. වීඩියෝ ප්ලේයර් එක මත ක්ලික් කර ප්ලේ කිරීම සහ Fullscreen කිරීම
             await page.evaluate(async () => {
               const video = document.querySelector('video');
               if (video) {
@@ -95,11 +91,17 @@ jobs:
                 video.volume = 1.0;
                 video.play();
               }
+              const videoContainer = document.querySelector('div[role="region"]') || document.querySelector('video');
+              if (videoContainer) {
+                videoContainer.click();
+              }
             });
 
-            // F11 ඔබලා Fullscreen කිරීම
-            await new Promise(r => setTimeout(r, 3000));
+            // තවත් තත්පර 5ක් ඉඳලා F11 ගැසීම
+            await new Promise(r => setTimeout(r, 5000));
             await page.keyboard.press('F11');
+            
+            console.log('Stream display setup completed.');
           })();
           EOF
 
