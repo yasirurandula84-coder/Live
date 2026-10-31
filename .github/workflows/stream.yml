@@ -72,48 +72,30 @@ jobs:
 
             await new Promise(r => setTimeout(r, 6000));
 
-            // PTV Sports හෝ අවශ්‍ය සර්වර් බට්න් එක ක්ලික් කිරීම සහ ස්වයංක්‍රීයව ෆුල්ස්ක්‍රීන් කිරීම
+            // PTV Sports සර්වර් බට්න් එක ක්ලික් කිරීම සහ ස්වයංක්‍රීයව ෆුල්ස්ක්‍රීන් කිරීම
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              const selectServer = (serverName) => {
-                const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
-                const targetBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes(serverName.toLowerCase()));
-                
-                if (targetBtn) {
-                  targetBtn.click();
-                  console.log(serverName + ' server clicked successfully!');
-                  return true;
-                }
-                return false;
-              };
-
-              // ඔබට අවශ්‍ය සර්වර් නම මෙතැනින් වෙනස් කරගත හැක (උදා: 'PTV Sports')
-              let serverName = 'PTV Sports';
-              let clicked = selectServer(serverName);
+              const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
+              const ptvBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('ptv'));
               
-              setTimeout(() => {
-                if (!clicked) selectServer(serverName);
-              }, 4000);
+              if (ptvBtn) {
+                ptvBtn.click();
+              }
 
-              // වීඩියෝ එක ලෝඩ් වී නිසි ලෙස Full Screen වීම සඳහා
-              setTimeout(async () => {
-                const video = document.querySelector('video');
-                if (video) {
-                  video.muted = false;
-                  video.volume = 1.0;
+              await new Promise(resolve => setTimeout(resolve, 3000));
 
-                  const playerContainer = video.closest('.player-container') || video.parentElement || video;
-                  
-                  if (playerContainer.requestFullscreen) {
-                    await playerContainer.requestFullscreen();
-                  } else if (video.requestFullscreen) {
-                    await video.requestFullscreen();
-                  } else if (video.webkitRequestFullscreen) {
-                    await video.webkitRequestFullscreen();
-                  }
+              const video = document.querySelector('video');
+              if (video) {
+                video.muted = false;
+                video.volume = 1.0;
+                
+                if (video.requestFullscreen) {
+                  video.requestFullscreen();
+                } else if (video.webkitRequestFullscreen) {
+                  video.webkitRequestFullscreen();
                 }
-              }, 9000);
+              }
             });
           })();
           EOF
