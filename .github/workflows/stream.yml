@@ -67,15 +67,24 @@ jobs:
               }
             });
 
-            await page.goto('https://footfytv.pro/watch/4728', {
+            await page.goto('https://footfytv.pro/watch/4527', {
               waitUntil: 'networkidle2'
             });
 
             await new Promise(r => setTimeout(r, 6000));
 
+            // PTV Sports සර්වර් බටන් එක සොයා ක්ලික් කිරීම සහ ප්ලේයර් එක ෆුල්ස්ක්‍රීන් කිරීම
             await page.evaluate(async () => {
               window.open = function() { return null; };
               await new Promise(resolve => setTimeout(resolve, 2000));
+
+              const buttons = Array.from(document.querySelectorAll('a, button, div'));
+              const ptvButton = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('ptv'));
+              if (ptvButton) {
+                ptvButton.click();
+              }
+
+              await new Promise(resolve => setTimeout(resolve, 3000));
 
               const video = document.querySelector('video');
               if (video) {
@@ -105,7 +114,7 @@ jobs:
             drawtext=text='%{localtime\:%H\:%M\:%S}':x=w-130:y=60:fontsize=20:fontcolor=white:box=1:boxcolor=red@0.8:boxborderw=5,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM SPORTS':x=W-280:y=48:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.9:boxborderw=10,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text=' PLEASE SHARE & LIKE ':x=50:y='150 + sin(t*5)*12':fontsize=26:fontcolor=yellow:box=1:boxcolor=blue@0.8:boxborderw=6[v]; \
-            [1:a]asetrate=44100*1.25,aresample=44100:async=1,atempo=0.8,aecho=0.8:0.88:60:0.4,volume=1.0[a]" \
+            [1:a]highpass=f=150,lowpass=f=3400,asetrate=44100*1.25,aresample=44100:async=1,atempo=0.8,aecho=0.8:0.88:60:0.4,volume=1.0[a]" \
             -map "[v]" -map "[a]" \
             -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1000k -maxrate 1200k -bufsize 2400k \
             -max_muxing_queue_size 2048 \
