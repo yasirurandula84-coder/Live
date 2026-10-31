@@ -1,4 +1,4 @@
-Name: Stream Touchcric Match to Facebook (Lower Down Logo)
+name: Stream Touchcric Match to Facebook (Lower Down Logo)
 
 on:
   workflow_dispatch:
