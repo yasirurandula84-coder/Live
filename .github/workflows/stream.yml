@@ -1,4 +1,4 @@
-Name: Stream Touchcric Match to Facebook (F11 Fullscreen Fix)
+name: Stream Touchcric Match to Facebook (F11 Fullscreen Fix)
 
 on:
   workflow_dispatch:
