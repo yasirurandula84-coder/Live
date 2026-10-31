@@ -73,18 +73,25 @@ jobs:
 
             await new Promise(r => setTimeout(r, 6000));
 
-            // PTV Sports සර්වර් බටන් එක සොයා ක්ලික් කිරීම සහ ප්ලේයර් එක ෆුල්ස්ක්‍රීන් කිරීම
+            // PTV Sports server button exact text matching aur click karne ke liye
             await page.evaluate(async () => {
               window.open = function() { return null; };
               await new Promise(resolve => setTimeout(resolve, 2000));
 
-              const buttons = Array.from(document.querySelectorAll('a, button, div'));
-              const ptvButton = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('ptv'));
-              if (ptvButton) {
-                ptvButton.click();
+              const elements = Array.from(document.querySelectorAll('a, button, span, div, li'));
+              const ptvElement = elements.find(el => el.textContent && el.textContent.trim().toLowerCase() === 'ptv sports');
+              
+              if (ptvElement) {
+                ptvElement.click();
+              } else {
+                // Agar exact match na mile toh containing text se try karega
+                const partialPtv = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('ptv'));
+                if (partialPtv) {
+                  partialPtv.click();
+                }
               }
 
-              await new Promise(resolve => setTimeout(resolve, 3000));
+              await new Promise(resolve => setTimeout(resolve, 4000));
 
               const video = document.querySelector('video');
               if (video) {
