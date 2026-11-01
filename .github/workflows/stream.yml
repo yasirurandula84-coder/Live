@@ -33,7 +33,7 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
-          # PulseAudio start කර virtual sink එක සැකසීම (Azure kernel එකට අනුකූල වන පරිදි)
+          # PulseAudio start කර virtual sink එක සැකසීම
           pulseaudio --start --exit-idle-time=-1 || true
           pactl load-module module-null-sink sink_name=virtual_sink || true
           pactl set-default-sink virtual_sink || true
@@ -105,22 +105,21 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # FFmpeg streaming - Copyright බේරීමට Cropping, Color/Saturation සහ Audio modifications සමඟ
+          # FFmpeg streaming - 2 සහ 3 පියවර පමණක් ක්‍රියාත්මක වන සේ (Audio modifications & Visual Overlays/Boxes)
           ffmpeg -y \
             -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
             -map_metadata -1 \
-            -filter_complex "[0:v]crop=in_w-70:in_h-70:35:35,scale=1280:720,fps=24,\
-            eq=brightness=0.02:saturation=1.08,\
-            drawbox=x=1000:y=10:w=260:h=85:color=black:t=fill,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM SPORTS':x=1000+(260-text_w)/2:y=10+(85-text_h)/2:fontsize=22:fontcolor=white,\
-            drawbox=x=1000:y=97:w=260:h=35:color=black@0.9:t=fill,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='🔴 LIVE NOW':x=1000+(260-text_w)/2:y=97+(35-text_h)/2:fontsize=16:fontcolor=yellow,\
-            drawtext=text='IND vs NZ LIVE CRICKET':x='mod(t*50, w+200)-100':y=h-30:fontsize=22:fontcolor=white@0.9:box=1:boxcolor=black@0.7:boxborderw=3,\
+            -filter_complex "[0:v]crop=in_w-40:in_h-40:20:20,scale=1280:720,fps=24,\
+            drawbox=x=980:y=10:w=280:h=90:color=black:t=fill,\
+            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM LIVE':x=980+(280-text_w)/2:y=10+(90-text_h)/2:fontsize=22:fontcolor=white,\
+            drawbox=x=980:y=105:w=280:h=35:color=black@0.9:t=fill,\
+            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='🔴 HD BROADCAST':x=980+(280-text_w)/2:y=105+(35-text_h)/2:fontsize=16:fontcolor=yellow,\
+            drawtext=text='CRICKET MATCH CONTINUOUS STREAM':x='mod(t*55, w+200)-100':y=h-35:fontsize=22:fontcolor=white@0.9:box=1:boxcolor=black@0.7:boxborderw=3,\
             drawtext=text='%{localtime\:%H\:%M\:%S}':x=w-130:y=60:fontsize=20:fontcolor=white:box=1:boxcolor=red@0.8:boxborderw=5,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SHARE NOW & LIKE THE STREAM':x=50:y='150 + sin(t*5)*12':fontsize=26:fontcolor=yellow:box=1:boxcolor=blue@0.8:boxborderw=6,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='⚡ OFFICIAL HD BROADCAST • JOIN WITH US ⚡':x='w-mod(t*80, w+800)':y=15:fontsize=16:fontcolor=cyan:box=1:boxcolor=black@0.8:boxborderw=4,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='MATCH CONTINUOUSLY LIVE':x=50:y=h-70:fontsize=16:fontcolor=white:box=1:boxcolor=green@0.8:boxborderw=4[v]; \
+            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='LIKE & SHARE THE STREAM':x=50:y='150 + sin(t*5)*12':fontsize=26:fontcolor=yellow:box=1:boxcolor=blue@0.8:boxborderw=6,\
+            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='⚡ OFFICIAL STREAM LINK • ENJOY ⚡':x='w-mod(t*80, w+800)':y=15:fontsize=16:fontcolor=cyan:box=1:boxcolor=black@0.8:boxborderw=4,\
+            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='LIVE ACTION ONGOING':x=50:y=h-70:fontsize=16:fontcolor=white:box=1:boxcolor=green@0.8:boxborderw=4[v]; \
             [1:a]asetrate=44100*1.08,aresample=44100,atempo=0.92,highpass=f=200,lowpass=f=3600,aecho=0.8:0.88:60|120:0.4|0.3,volume=1.5[a]" \
             -map "[v]" -map "[a]" \
             -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 48 -keyint_min 48 -b:v 550k -maxrate 750k -bufsize 1500k \
