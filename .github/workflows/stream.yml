@@ -78,10 +78,10 @@ jobs:
               window.open = function() { return null; };
 
               const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
-              const tntBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('tnt'));
+              const tapmadBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('tapmad'));
               
-              if (tntBtn) {
-                tntBtn.click();
+              if (tapmadBtn) {
+                tapmadBtn.click();
               }
 
               await new Promise(resolve => setTimeout(resolve, 3000));
