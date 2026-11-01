@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Final Stable Audio Fix)
+name: Stream Match to Facebook (Azure Kernel Compatible)
 
 on:
   workflow_dispatch:
@@ -23,7 +23,6 @@ jobs:
             xvfb \
             pulseaudio \
             alsa-utils \
-            libasound2-plugins \
             fonts-dejavu-core \
             curl
             
@@ -34,12 +33,11 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
-          # ALSA Loopback module eka load kirima (Audio capture error nawatranna)
-          sudo modprobe snd-aloop
-          
+          # PulseAudio start කර virtual sink එක සැකසීම (Azure kernel එකට අනුකූල වන පරිදි)
           pulseaudio --start --exit-idle-time=-1 || true
           pactl load-module module-null-sink sink_name=virtual_sink || true
           pactl set-default-sink virtual_sink || true
+          pactl set-default-source virtual_sink.monitor || true
 
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
@@ -107,7 +105,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # FFmpeg streaming - PulseAudio sink monitor haraha capture kirima (Alsa error completely bypass)
+          # FFmpeg streaming - PulseAudio sink monitor හරහා සවුන්ඩ් කැප්චර් කිරීම
           ffmpeg -y \
             -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
