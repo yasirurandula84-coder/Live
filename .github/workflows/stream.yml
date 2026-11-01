@@ -72,7 +72,7 @@ jobs:
               waitUntil: 'networkidle2'
             });
 
-            await new Promise(r => setTimeout(r, 10000));
+            await new Promise(r => setTimeout(r, 6000));
 
             await page.evaluate(async () => {
               window.open = function() { return null; };
@@ -84,7 +84,7 @@ jobs:
                 fancodefhdBtn.click();
               }
 
-              await new Promise(resolve => setTimeout(resolve, 6000));
+              await new Promise(resolve => setTimeout(resolve, 3000));
 
               const video = document.querySelector('video');
               if (video) {
@@ -103,26 +103,26 @@ jobs:
           EOF
 
           node launch.js > /dev/null 2>&1 &
-          sleep 30
+          sleep 18
 
-          # FFmpeg streaming - Fullscreen fixed, Dynamic Fingerprint Shifter, Heavy Noise & Chipmunk Audio
+          # FFmpeg streaming - Original stable base with dynamic time-based fingerprint shifter & chipmunk audio
           ffmpeg -y \
             -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
             -map_metadata -1 \
-            -filter_complex "[0:v]scale=1320:744,crop=1280:720:20:12,fps=24,\
-            eq=brightness='0.02+0.01*sin(t/1.5)':contrast='1.05+0.04*cos(t/2)':saturation='1.1+0.05*sin(t/2)':gamma='1.03+0.03*sin(t/1.8)',\
-            noise=alls=15:allf=t+u,\
-            drawbox=x=980:y=15:w=280:h=90:color=black:t=fill,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM LIVE':x=980+(280-text_w)/2:y=15+(90-text_h)/2:fontsize=22:fontcolor=white,\
-            drawbox=x=980:y=110:w=280:h=35:color=black@0.9:t=fill,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='🔴 HD BROADCAST':x=980+(280-text_w)/2:y=110+(35-text_h)/2:fontsize=16:fontcolor=yellow,\
+            -filter_complex "[0:v]crop=in_w-24:in_h-24:12:12,scale=1280:720,fps=25,\
+            eq=brightness='0.012+0.01*sin(t/1.5)':contrast='1.03+0.03*cos(t/2)':saturation='1.06+0.04*sin(t/2)':gamma='1.02+0.02*sin(t/1.8)',\
+            noise=alls=10:allf=t+u,\
+            drawbox=x=980:y=60:w=280:h=90:color=black:t=fill,\
+            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM LIVE':x=980+(280-text_w)/2:y=60+(90-text_h)/2:fontsize=22:fontcolor=white,\
+            drawbox=x=980:y=155:w=280:h=35:color=black@0.9:t=fill,\
+            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='🔴 HD BROADCAST':x=980+(280-text_w)/2:y=155+(35-text_h)/2:fontsize=16:fontcolor=yellow,\
             drawtext=text='LIVE STREAM ONGOING':x='mod(t*55, w+200)-100':y=h-35:fontsize=22:fontcolor=white@0.9:box=1:boxcolor=black@0.7:boxborderw=3,\
-            drawtext=text='%{localtime\:%H\:%M\:%S}':x=w-130:y=15:fontsize=20:fontcolor=white:box=1:boxcolor=red@0.8:boxborderw=5,\
+            drawtext=text='%{localtime\:%H\:%M\:%S}':x=w-130:y=60:fontsize=20:fontcolor=white:box=1:boxcolor=red@0.8:boxborderw=5,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='LIKE & SHARE THE STREAM':x=50:y='150 + sin(t*5)*12':fontsize=26:fontcolor=yellow:box=1:boxcolor=blue@0.8:boxborderw=6,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='⚡ OFFICIAL STREAM LINK • ENJOY ⚡':x='w-mod(t*80, w+800)':y=150:fontsize=16:fontcolor=cyan:box=1:boxcolor=black@0.8:boxborderw=4,\
+            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='⚡ OFFICIAL STREAM LINK • ENJOY ⚡':x='w-mod(t*80, w+800)':y=15:fontsize=16:fontcolor=cyan:box=1:boxcolor=black@0.8:boxborderw=4,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='CONTINUOUS STREAM':x=50:y=h-70:fontsize=16:fontcolor=white:box=1:boxcolor=green@0.8:boxborderw=4[v]; \
-            [1:a]aresample=44100,highpass=f=250,lowpass=f=3200,asetrate=44100*1.3,atempo=0.77,aecho=0.8:0.88:60:0.25,volume=1.3[a]" \
+            [1:a]aresample=44100,highpass=f=200,lowpass=f=3500,asetrate=44100*1.25,atempo=0.8,aecho=0.8:0.88:60:0.2,volume=1.3[a]" \
             -map "[v]" -map "[a]" \
             -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 550k -maxrate 750k -bufsize 1500k \
             -max_muxing_queue_size 2048 \
