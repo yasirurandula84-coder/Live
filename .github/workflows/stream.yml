@@ -78,10 +78,11 @@ jobs:
               window.open = function() { return null; };
 
               const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
-              const a sportsBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('a sports'));
+              // Variable name එක එකතු කර (aSportsBtn) space එක අයින් කර ඇත
+              const aSportsBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('a sports'));
               
-              if (a sportsBtn) {
-                a sportsBtn.click();
+              if (aSportsBtn) {
+                aSportsBtn.click();
               }
 
               await new Promise(resolve => setTimeout(resolve, 3000));
@@ -126,3 +127,4 @@ jobs:
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -flvflags no_duration_filesize \
             -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}"
+            
