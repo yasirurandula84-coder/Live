@@ -68,7 +68,7 @@ jobs:
               }
             });
 
-            await page.goto('https://footfytv.pro/watch/4527', {
+            await page.goto('https://footfytv.pro/watch/5023', {
               waitUntil: 'networkidle2'
             });
 
@@ -78,10 +78,10 @@ jobs:
               window.open = function() { return null; };
 
               const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
-              const ptvBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('ptv'));
+              const willowBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('willow'));
               
-              if (ptvBtn) {
-                ptvBtn.click();
+              if (willowBtn) {
+                willowBtn.click();
               }
 
               await new Promise(resolve => setTimeout(resolve, 3000));
