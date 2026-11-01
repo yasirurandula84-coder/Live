@@ -78,10 +78,10 @@ jobs:
               window.open = function() { return null; };
 
               const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
-              const sonyBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('sony'));
+              const a sportsBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('a sports'));
               
-              if (sonyBtn) {
-                sonyBtn.click();
+              if (a sportsBtn) {
+                a sportsBtn.click();
               }
 
               await new Promise(resolve => setTimeout(resolve, 3000));
