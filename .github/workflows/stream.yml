@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Stable Audio & Visual Fix)
+name: Stream Match to Facebook (Final Stable Audio Fix)
 
 on:
   workflow_dispatch:
@@ -21,7 +21,9 @@ jobs:
           sudo apt-get install -y \
             ffmpeg \
             xvfb \
+            pulseaudio \
             alsa-utils \
+            libasound2-plugins \
             fonts-dejavu-core \
             curl
             
@@ -32,9 +34,13 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
-          # Sound hang novenna ALSA snd-dummy/loopback load kirima
-          sudo modprobe snd_dummy || true
+          # ALSA Loopback module eka load kirima (Audio capture error nawatranna)
+          sudo modprobe snd-aloop
           
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_sink || true
+          pactl set-default-sink virtual_sink || true
+
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
@@ -101,10 +107,10 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # FFmpeg streaming - ALSA sound capture saha buffer drop prevention
+          # FFmpeg streaming - PulseAudio sink monitor haraha capture kirima (Alsa error completely bypass)
           ffmpeg -y \
             -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
-            -f alsa -ar 44100 -ac 2 -i default \
+            -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
             -map_metadata -1 \
             -filter_complex "[0:v]crop=in_w-30:in_h-30:15:15,scale=1280:720,fps=24,\
             drawbox=x=1000:y=45:w=260:h=85:color=black:t=fill,\
