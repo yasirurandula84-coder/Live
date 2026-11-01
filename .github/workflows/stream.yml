@@ -68,7 +68,7 @@ jobs:
               }
             });
 
-            await page.goto('https://footfytv.pro/watch/4726', {
+            await page.goto('https://footfytv.pro/watch/4896', {
               waitUntil: 'networkidle2'
             });
 
@@ -78,10 +78,10 @@ jobs:
               window.open = function() { return null; };
 
               const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
-              const tapmadBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('tapmad'));
+              const himalayaBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('himalaya'));
               
-              if (tapmadBtn) {
-                tapmadBtn.click();
+              if (himalayaBtn) {
+                himalayaBtn.click();
               }
 
               await new Promise(resolve => setTimeout(resolve, 3000));
