@@ -105,7 +105,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 30
 
-          # FFmpeg streaming - Time-based dynamic color shifting (changes every 10s) + Heavy Noise + Chipmunk Audio
+          # FFmpeg streaming - Fullscreen fixed, Dynamic Fingerprint Shifter, Heavy Noise & Chipmunk Audio
           ffmpeg -y \
             -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
