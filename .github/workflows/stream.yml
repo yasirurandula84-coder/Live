@@ -90,7 +90,7 @@ jobs:
 
               await new Promise(resolve => setTimeout(resolve, 3000));
 
-              const video = document.querySelector('video');
+              The video = document.querySelector('video');
               if (video) {
                 video.muted = false;
                 video.volume = 1.0;
@@ -109,16 +109,16 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # FFmpeg streaming - Deep crop, heavy noise, chipmunk mic audio + Very soft/low background ambient audio
+          # FFmpeg streaming - Lag-free anti-copyright setup with moving semi-transparent scanlines
           ffmpeg -y \
             -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
             -stream_loop -1 -i bgm.mp3 \
             -map_metadata -1 \
-            -filter_complex "[0:v]crop=in_w-80:in_h-80:40:40,scale=1280:720,fps=25,\
-            eq=brightness='0.03+0.02*sin(t/1.0)':contrast='1.08+0.05*cos(t/1.5)':saturation='1.1+0.06*sin(t/2.0)':gamma='1.05+0.04*cos(t/1.2)',\
-            unsharp=7:7:1.2:7:7:0.0,\
-            noise=alls=25:allf=t+u,\
+            -filter_complex "[0:v]scale=1280:720,fps=25,\
+            eq=brightness='0.015*sin(t/2)':contrast='1.02+0.02*cos(t/3)':saturation='1.05',\
+            noise=alls=6:allf=t+u,\
+            drawbox=x=0:y='mod(t*60, 720)':w=1280:h=3:color=white@0.08:t=fill,\
             \
             drawbox=x=980:y=20:w=140:h=90:color=blue:t=fill,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SPECTRUM':x=980+(140-text_w)/2:y=20+(90-text_h)/2:fontsize=24:fontcolor=yellow,\
@@ -133,8 +133,8 @@ jobs:
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='LIKE & SHARE THE STREAM':x=50:y='150 + sin(t*5)*12':fontsize=26:fontcolor=yellow:box=1:boxcolor=blue@0.8:boxborderw=6,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='⚡ OFFICIAL STREAM LINK • ENJOY ⚡':x='w-mod(t*80, w+800)':y=15:fontsize=16:fontcolor=cyan:box=1:boxcolor=black@0.8:boxborderw=4,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='CONTINUOUS STREAM':x=50:y=h-70:fontsize=16:fontcolor=white:box=1:boxcolor=green@0.8:boxborderw=4[v]; \
-            [1:a]aresample=44100,highpass=f=300,lowpass=f=3000,asetrate=44100*1.3,atempo=0.77,aecho=0.8:0.88:60:0.2,volume=0.05[mic]; \
-            [2:a]aresample=44100,volume=0.15[bgm]; \
+            [1:a]aresample=44100,asetrate=44100*1.25,atempo=0.8,volume=0.04[mic]; \
+            [2:a]aresample=44100,volume=0.12[bgm]; \
             [mic][bgm]amix=inputs=2:duration=first:weights=1 1[a]" \
             -map "[v]" -map "[a]" \
             -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 550k -maxrate 750k -bufsize 1500k \
@@ -143,3 +143,4 @@ jobs:
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -flvflags no_duration_filesize \
             -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}"
+            
