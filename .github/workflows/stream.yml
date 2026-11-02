@@ -87,28 +87,28 @@ jobs:
               const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
               const targetBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('fancode fhd'));
               
-              if (targetBtn) {
-                targetBtn.click();
-                console.log("Clicked FanCode FHD button");
+              if (fancodefhdBtn) {
+                fancodefhdBtn.click();
               }
 
-              await new Promise(resolve => setTimeout(resolve, 5000));
+              await new Promise(resolve => setTimeout(resolve, 3000));
 
               const video = document.querySelector('video');
               if (video) {
                 video.muted = false;
                 video.volume = 1.0;
-                video.play().catch(e => {});
+                video.play();
                 
                 if (video.requestFullscreen) {
-                  video.requestFullscreen().catch(e => {});
+                  video.requestFullscreen();
+                } else if (video.webkitRequestFullscreen) {
+                  video.webkitRequestFullscreen();
                 }
               }
             });
-
-            await new Promise(() => {});
           })();
           EOF
+
 
           node launch.js > /dev/null 2>&1 &
           sleep 25
