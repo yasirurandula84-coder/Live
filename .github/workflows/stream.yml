@@ -1,4 +1,4 @@
-name: Stream NPL to Facebook (Advanced Anti-Copyright)
+Name: Stream Match to Facebook (Azure Kernel Compatible)
 
 on:
   workflow_dispatch:
@@ -64,7 +64,7 @@ jobs:
             });
 
             console.log("Navigating to site...");
-            await page.goto('https://footfytv.pro/', {
+            await page.goto('https://footfytv.pro/watch/4896', {
               waitUntil: 'networkidle2',
               timeout: 60000
             });
@@ -76,18 +76,18 @@ jobs:
               window.open = function() { return null; };
 
               const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
-              const targetBtn = elements.find(el => el.textContent && (el.textContent.toLowerCase().includes('npl') || el.textContent.toLowerCase().includes('national premier league')));
+              const targetBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('fancode fhd'));
               
               if (targetBtn) {
                 targetBtn.click();
-                console.log("Clicked NPL button");
+                console.log("Clicked FanCode FHD button");
               }
 
               await new Promise(resolve => setTimeout(resolve, 5000));
 
               const video = document.querySelector('video');
               if (video) {
-                video.muted = true;
+                video.muted = true; // Browser eke video eka mute කර ඇත
                 video.style.position = 'fixed';
                 video.style.top = '0';
                 video.style.left = '0';
@@ -107,12 +107,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 25
 
-          # Advanced Anti-Copyright FFmpeg Pipeline
-          # 1. crop & scale (removes exact original resolution matching)
-          # 2. eq filter (shifts brightness, contrast, saturation dynamically over time)
-          # 3. drawbox / noise overlays (breaks automated checksum hashes)
-          # 4. Audio: Generates a faint white/pink noise stream instead of complete silence so FB audio bot doesn't flag dead-air or standard matches.
-          
+          # Advanced Anti-Copyright FFmpeg Pipeline (Protected against Content ID & checksum hashes)
           ffmpeg -y \
             -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
             -f lavfi -i "anoisesrc=d=999999:c=white:r=44100:amplitude=0.01" \
@@ -123,7 +118,7 @@ jobs:
             drawbox=x=0:y=710:w=1280:h=10:color=black@0.5:t=fill,\
             drawbox=x=920:y=15:w=345:h=50:color=black@0.7:t=fill,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='CRICKET LIVE HD':x=920+(345-text_w)/2:y=15+(50-text_h)/2:fontsize=18:fontcolor=yellow,\
-            drawtext=text='NPL MATCH STREAMING':x='mod(t*60, w+300)-150':y=h-22:fontsize=16:fontcolor=white@0.9:box=1:boxcolor=black@0.6:boxborderw=2,\
+            drawtext=text='LIVE STREAM ONGOING':x='mod(t*60, w+300)-150':y=h-22:fontsize=16:fontcolor=white@0.9:box=1:boxcolor=black@0.6:boxborderw=2,\
             drawtext=text='%{localtime\:%H\:%M\:%S}':x=w-105:y=70:fontsize=15:fontcolor=white:box=1:boxcolor=red@0.8:boxborderw=2,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='SUPPORT US • SHARE':x=20:y='80 + sin(t*3)*10':fontsize=18:fontcolor=cyan:box=1:boxcolor=black@0.7:boxborderw=3[v]" \
             -map "[v]" -map 1:a \
