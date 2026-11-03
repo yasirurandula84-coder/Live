@@ -1,4 +1,4 @@
-Name: Stream NPL to Facebook (Advanced Anti-Copyright)
+name: Stream NPL to Facebook (Advanced Anti-Copyright)
 
 on:
   workflow_dispatch:
