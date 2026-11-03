@@ -117,7 +117,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 25
 
-          # FFmpeg streaming - Top crop + Bottom Scoreboard Color Tinting + Invisible scanlines + Stadium Crowd Audio
+          # FFmpeg streaming - Zero-Lag Optimization (Top crop, scoreboard tint, invisible scanlines, stadium crowd audio)
           ffmpeg -y \
             -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
@@ -125,7 +125,6 @@ jobs:
             -map_metadata -1 \
             -filter_complex "[0:v]crop=in_w:in_h-40:0:40,scale=1280:720,fps=25,\
             eq=brightness='0.02+0.015*sin(t/1.2)':contrast='1.05+0.04*cos(t/1.8)':saturation='1.08',\
-            noise=alls=15:allf=t+u,\
             drawbox=x=0:y='mod(t*50, 720)':w=1280:h=2:color=white@0.02:t=fill,\
             drawbox=x=0:y=620:w=1280:h=100:color=blue@0.08:t=fill,\
             \
