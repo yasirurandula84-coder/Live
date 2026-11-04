@@ -105,7 +105,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # FFmpeg streaming - Fixed audio stream index from [0:a] to [1:a]
+          # FFmpeg streaming - Shifted blue box further right to cover the Sony logo
           ffmpeg -y \
             -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
@@ -115,8 +115,8 @@ jobs:
             eq=brightness=0.05:contrast=1.1:saturation=1.1,\
             unsharp=5:5:1.0:5:5:0.0,\
             noise=alls=30:allf=t+u,\
-            drawbox=x=980:y=20:w=140:h=90:color=blue:t=fill,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='LIVE':x=1020:y=50:fontsize=24:fontcolor=yellow,\
+            drawbox=x=1130:y=15:w=140:h=90:color=blue:t=fill,\
+            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='LIVE':x=1165:y=48:fontsize=24:fontcolor=yellow,\
             drawbox=x=980:y=115:w=280:h=35:color=black@0.9:t=fill,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='🔴 HD BROADCAST':x=990:y=122:fontsize=16:fontcolor=yellow,\
             drawtext=text='LIVE STREAM ONGOING':x=100:y=680:fontsize=22:fontcolor=white@0.9:box=1:boxcolor=black@0.7:boxborderw=3,\
