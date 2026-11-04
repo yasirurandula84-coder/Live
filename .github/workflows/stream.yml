@@ -105,14 +105,14 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # FFmpeg streaming - No BGM, Heavy Voice Focus, Echo/Chunking, Smooth 10s Zoom, and Invisible Scanlines
+          # FFmpeg streaming - Fixed eq quotes error
           ffmpeg -y \
             -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
             -map_metadata -1 \
             -filter_complex "[0:v]crop=1280:680:0:40,\
             zoompan=z='if(lt(mod(t,20),10), 1.0 + (mod(t,10)/10)*0.03, 1.03 - ((mod(t,10)/10)*0.03))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=1280:720:fps=24,\
-            eq=brightness='0.04+0.03*sin(t/0.8)':contrast='1.12+0.06*cos(t/1.2)':saturation='1.15+0.08*sin(t/1.5)':gamma='1.08+0.05*cos(t/1.0)',\
+            eq=brightness=\'0.04+0.03*sin(t/0.8)\':contrast=\'1.12+0.06*cos(t/1.2)\':saturation=\'1.15+0.08*sin(t/1.5)\':gamma=\'1.08+0.05*cos(t/1.0)\',\
             unsharp=5:5:1.0:5:5:0.0,\
             noise=alls=35:allf=t+u,\
             drawtext=text='@':x='mod(t*150, w)':y='mod(t*120, h)':fontsize=12:fontcolor=white@0.05,\
