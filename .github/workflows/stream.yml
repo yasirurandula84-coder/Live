@@ -64,7 +64,7 @@ jobs:
             });
 
             console.log("Navigating to site...");
-            await page.goto('https://footfytv.pro/watch/4896', {
+            await page.goto('https://footfytv.pro/watch/4726', {
               waitUntil: 'networkidle2',
               timeout: 60000
             });
@@ -76,7 +76,7 @@ jobs:
               window.open = function() { return null; };
 
               const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
-              const targetBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('fancode fhd'));
+              const targetBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('sonyliv (eng)'));
               
               if (targetBtn) {
                 targetBtn.click();
