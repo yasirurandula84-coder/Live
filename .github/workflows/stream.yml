@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Azure Kernel Compatible)
+Name: Stream Match to Facebook (Azure Kernel Compatible)
 
 on:
   workflow_dispatch:
@@ -76,18 +76,18 @@ jobs:
               window.open = function() { return null; };
 
               const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
-              const sonylivBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('SonyLiv (ENG)'));
+              const sonylivBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('sonyliv'));
               
               if (sonylivBtn) {
                 sonylivBtn.click();
-                console.log("Clicked sonyliv button");
+                console.log("Clicked FanCode FHD button");
               }
 
               await new Promise(resolve => setTimeout(resolve, 5000));
 
               const video = document.querySelector('video');
               if (video) {
-                video.muted = true; // Browser eke video eka mute කර ඇත
+                video.muted = true;
                 video.style.position = 'fixed';
                 video.style.top = '0';
                 video.style.left = '0';
@@ -106,8 +106,9 @@ jobs:
 
           node launch.js > /dev/null 2>&1 &
           sleep 25
-          
-          # Advanced Anti-Copyright FFmpeg Pipeline (Clean Syntax)
+
+          # FFmpeg command එක වෙනම shell script එකකට ලිවීම (Syntax errors වළඳවා ගැනීමට)
+          cat << 'FFEOF' > run_stream.sh
           ffmpeg -y \
             -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
             -f lavfi -i "anoisesrc=d=999999:c=white:r=44100:amplitude=0.01" \
@@ -119,3 +120,7 @@ jobs:
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -flvflags no_duration_filesize \
             -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}"
+          FFEOF
+
+          bash run_stream.sh
+          
