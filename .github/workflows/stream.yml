@@ -1,4 +1,4 @@
-Name: Stream Match to Facebook (Azure Kernel Compatible)
+name: Stream Match to Facebook (Azure Kernel Compatible)
 
 on:
   workflow_dispatch:
