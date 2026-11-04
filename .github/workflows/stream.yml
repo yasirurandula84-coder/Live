@@ -105,7 +105,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # FFmpeg streaming with clean syntax to avoid argument errors
+          # FFmpeg streaming - Running in foreground so the job stays alive
           ffmpeg -y \
             -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
