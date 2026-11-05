@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Azure Kernel Compatible)
+Name: Stream Match to Facebook (Azure Kernel Compatible)
 
 on:
   workflow_dispatch:
@@ -35,7 +35,7 @@ jobs:
           export DISPLAY=:99
 
           pulseaudio --start --exit-idle-time=-1 || true
-          pactl load-module module-null-sink sink_name=virtual_sink || true
+          pactl load-module module-null-sink sink_name=virtual_sink sink_properties=device.description=Virtual_Sink || true
           pactl set-default-sink virtual_sink || true
           pactl set-default-source virtual_sink.monitor || true
 
@@ -116,13 +116,13 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # Clean FFmpeg Streaming with Original Video and Original Audio (No Overlays / No Effects)
+          # High Quality Clean FFmpeg Streaming (Increased Bitrate for HD & Full Original Audio)
           ffmpeg -y \
-            -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
+            -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-            -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 2500k -maxrate 3000k -bufsize 6000k \
+            -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 4500k -maxrate 5000k -bufsize 10000k \
             -max_muxing_queue_size 2048 \
-            -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            -c:a aac -b:a 192k -ar 44100 -ac 2 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -flvflags no_duration_filesize \
             -f flv "rtmp://stream.livepush.io/live/rtmp_ef89878a908e457691eda888602a67ee"
