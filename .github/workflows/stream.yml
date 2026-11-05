@@ -1,4 +1,4 @@
-Name: Stream Direct M3u8 with Custom Logo to Rumble
+name: Stream Direct M3u8 with Custom Logo to Rumble
 
 on:
   workflow_dispatch:
