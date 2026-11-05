@@ -1,4 +1,4 @@
-Name: Continuous Anti-Error Stream to Rumble
+name: Continuous Anti-Error Stream to Rumble
 
 on:
   workflow_dispatch:
