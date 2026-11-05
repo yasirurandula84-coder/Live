@@ -1,4 +1,4 @@
-name: Stream FanCode via Free India VPN to Livepush
+name: Stream FanCode via Browser to Livepush
 
 on:
   workflow_dispatch:
@@ -10,37 +10,93 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install OpenVPN & FFmpeg
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies & FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg openvpn curl jq
-
-      - name: Connect to India VPN
-        run: |
-          # Fetch public active India OpenVPN configuration from VPNGate
-          curl -s "https://www.vpngate.net/api/iphone/" | grep -i ",IN," | head -n 1 | cut -d',' -f15 | base64 -d > india_vpn.ovpn || true
-
-          if [ -s india_vpn.ovpn ]; then
-            echo "India VPN Config downloaded successfully."
-            # Add DNS and routing fixes for OpenVPN
-            echo "script-security 2" >> india_vpn.ovpn
+          sudo apt-get install -y \
+            ffmpeg \
+            xvfb \
+            pulseaudio \
+            alsa-utils \
+            fonts-dejavu-core
             
-            sudo openvpn --config india_vpn.ovpn --daemon
-            sleep 10
+          npm install puppeteer
 
-            echo "Current Public IP Location:"
-            curl -s https://ipinfo.io/json || true
-          else
-            echo "Failed to fetch VPN config, attempting direct connection fallback..."
-          fi
-
-      - name: Start Clean FanCode Stream to Livepush
+      - name: Run Stream Bot & FFmpeg Capture
         run: |
+          Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
+          export DISPLAY=:99
+
+          # PulseAudio Setup
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_sink sink_properties=device.description=Virtual_Sink || true
+          pactl set-default-sink virtual_sink || true
+          
+          sleep 2
+          SINK_MONITOR=$(pactl list sources short | grep virtual_sink | awk '{print $2}')
+
+          # Create Puppeteer script to launch FanCode match
+          cat << 'EOF' > launch.js
+          const puppeteer = require('puppeteer');
+
+          (async () => {
+            const browser = await puppeteer.launch({
+              headless: false,
+              args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-gpu',
+                '--window-size=1280,720',
+                '--autoplay-policy=no-user-gesture-required',
+                '--start-fullscreen',
+                '--block-new-web-contents'
+              ]
+            });
+
+            const page = await browser.newPage();
+            await page.setViewport({ width: 1280, height: 720 });
+
+            // Go to FanCode Match Page
+            await page.goto('https://fancode.com/', { waitUntil: 'networkidle2' });
+            await new Promise(r => setTimeout(r, 6000));
+            
+            // Navigate to your match directly
+            await page.goto('https://fancode.com/match/4250368', { waitUntil: 'networkidle2' });
+            await new Promise(r => setTimeout(r, 8000));
+
+            // Auto click play & fullscreen video
+            await page.evaluate(async () => {
+              window.open = function() { return null; };
+              const playBtns = Array.from(document.querySelectorAll('button, div, span')).filter(el => el.textContent && (el.textContent.toLowerCase().includes('watch') || el.textContent.toLowerCase().includes('stream') || el.textContent.toLowerCase().includes('live')));
+              if(playBtns.length > 0) playBtns[0].click();
+
+              await new Promise(resolve => setTimeout(resolve, 4000));
+
+              const video = document.querySelector('video');
+              if (video) {
+                video.muted = false;
+                video.volume = 1.0;
+                video.play();
+                if (video.requestFullscreen) video.requestFullscreen();
+              }
+            });
+          })();
+          EOF
+
+          node launch.js > /dev/null 2>&1 &
+          sleep 15
+
+          # FFmpeg captures the virtual screen & original audio and sends to Livepush
           ffmpeg -y \
-            -re \
-            -headers "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36\r\nReferer: https://fancode.com/\r\nOrigin: https://fancode.com/\r\n" \
-            -i "https://in-mc-flive.fancode.com/mumbai/4250368_english_hls_7ea136c62c30127_1ta-di_h264/1080p.m3u8?hdntl=Expires=1793947397~_GO=Generated~acl=/mumbai/4250368_english_hls_7ea136c62c30127_1ta-di_h264/*~SessionID=7814838588_watcho_9358b9e2-07dc-4c~Signature=AV7HGj4Hqp0E1H8NKYuPRn66pNPA9aqZ1MsiSQ1BNsucHU8j7Hul36rCbQjKDZLEwqU0_6OygsjIM1ViOh1S-CGRkecL" \
+            -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
+            -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
             -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 2500k -maxrate 3000k -bufsize 6000k \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -flvflags no_duration_filesize \
             -f flv "rtmp://stream.livepush.io/live/rtmp_ef89878a908e457691eda888602a67ee"
+            
