@@ -1,4 +1,4 @@
-name: Continuous Auto-Reconnect Stream to Rumble
+name: Puppeteer Browser Capture to Rumble
 
 on:
   workflow_dispatch:
@@ -11,33 +11,61 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install FFmpeg & Curl
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies & FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg curl
+          sudo apt-get install -y ffmpeg xvfb pulseaudio libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 alsa-utils
+          npm install puppeteer
 
       - name: Download Custom Logo
         run: |
           curl -L "https://raw.githubusercontent.com/yasirurandula84-coder/Live/refs/heads/main/IMG_20261105_161937_822.jpg" --output logo.jpg
 
-      - name: Start Robust Continuous Stream
+      - name: Start Virtual Display & Audio
         run: |
+          Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
+          pulseaudio --start > /dev/null 2>&1 &
+          pactl load-module module-null-sink sink_name=virtual_sink sink_properties=device.description=Virtual_Sink > /dev/null 2>&1 || true
+
+      - name: Run Puppeteer Player Script
+        run: |
+          cat << 'EOF' > player.js
+          const puppeteer = require('puppeteer');
+          (async () => {
+            const browser = await puppeteer.launch({
+              headless: true,
+              args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--use-gl=egl',
+                '--window-size=1280,720',
+                '--autoplay-policy=no-user-gesture-required'
+              ]
+            });
+            const page = await browser.newPage();
+            await page.setViewport({ width: 1280, height: 720 });
+            await page.goto('http://line.tivi-ott.net/play/live.php?mac=00:1B:79:F9:2A:14&stream=373201&extension=m3u8/', { waitUntil: 'networkidle2' });
+            console.log('Browser started and playing stream...');
+            await new Promise(() => {});
+          })();
+          EOF
+          node player.js &
+
+      - name: Start FFmpeg Capture and Stream to Rumble
+        run: |
+          sleep 5
           ffmpeg -y \
-            -re \
-            -fflags +genpts+nobuffer \
-            -use_wallclock_as_timestamps 1 \
-            -timeout 15000000 \
-            -reconnect 1 \
-            -reconnect_streamed 1 \
-            -reconnect_delay_max 10 \
-            -reconnect_at_eof 1 \
-            -reconnect_on_network_error 1 \
-            -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-            -i "http://line.tivi-ott.net/play/live.php?mac=00:1B:79:F9:2A:14&stream=373201&extension=m3u8/" \
+            -f x11grab -video_size 1280x720 -framerate 30 -i :99.0 \
+            -f pulse -i virtual_sink.monitor \
             -i logo.jpg \
             -filter_complex "[1:v]scale=250:140[scaled_logo];[0:v][scaled_logo]overlay=W-w-280:15[v]" \
             -map "[v]" \
-            -map 0:a \
+            -map 1:a \
             -c:v libx264 -preset ultrafast -b:v 3000k -g 60 -r 30 \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -f flv "rtmp://rtmp.rumble.com/live/r-4nqzrs-fmy7-hvpx-92e7cc"
