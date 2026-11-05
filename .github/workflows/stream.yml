@@ -82,10 +82,10 @@ jobs:
               window.open = function() { return null; };
 
               const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
-              const fancodefhdBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('fancodefhd'));
+              const robbitholeBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('robbithole'));
               
-              if (fancodefhdBtn) {
-                fancodefhdBtn.click();
+              if (robbitholeBtn) {
+                robbitholeBtn.click();
               }
 
               await new Promise(resolve => setTimeout(resolve, 4000));
