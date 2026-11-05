@@ -15,11 +15,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             ffmpeg
-
-      - name: Start Clean Stream with FFmpeg
+      - name: Start Clean Stream with Proxy
         run: |
-          # Direct FFmpeg streaming with original video/audio and no overlays
           ffmpeg -y \
+            -http_proxy "http://YOUR_INDIAN_PROXY_IP:PORT" \
             -headers "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36\r\nReferer: https://fancode.com/\r\nOrigin: https://fancode.com/\r\n" \
             -i "https://in-mc-flive.fancode.com/mumbai/4250368_english_hls_7ea136c62c30127_1ta-di_h264/1080p.m3u8?hdntl=Expires=1793947397~_GO=Generated~acl=/mumbai/4250368_english_hls_7ea136c62c30127_1ta-di_h264/*~SessionID=7814838588_watcho_9358b9e2-07dc-4c~Signature=AV7HGj4Hqp0E1H8NKYuPRn66pNPA9aqZ1MsiSQ1BNsucHU8j7Hul36rCbQjKDZLEwqU0_6OygsjIM1ViOh1S-CGRkecL" \
             -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 2500k -maxrate 3000k -bufsize 6000k \
