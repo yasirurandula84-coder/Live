@@ -1,4 +1,4 @@
-mame: Continuous Auto-Reconnect Stream to Rumble
+name: Continuous Auto-Reconnect Stream to Rumble
 
 on:
   workflow_dispatch:
