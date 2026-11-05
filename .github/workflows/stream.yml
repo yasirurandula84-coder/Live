@@ -1,4 +1,4 @@
-name: Stream Direct M3u8 with Custom Logo to Rumble
+name: Continuous Stream Direct M3u8 to Rumble
 
 on:
   workflow_dispatch:
@@ -6,6 +6,7 @@ on:
 jobs:
   stream:
     runs-on: ubuntu-latest
+    timeout-minutes: 360  # ජොබ් එක පැය 6ක් (මිනිත්තු 360ක්) පුරා ක්‍රියාත්මක වීමට ඉඩ සලසයි
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -19,14 +20,15 @@ jobs:
         run: |
           curl -L "https://raw.githubusercontent.com/yasirurandula84-coder/Live/refs/heads/main/IMG_20261105_161937_822.jpg" --output logo.jpg
 
-      - name: Start Stream with Logo Overlay
+      - name: Start Continuous Stream with Logo Overlay
         run: |
           ffmpeg -y \
             -re \
+            -stream_loop -1 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -i "http://line.tivi-ott.net/play/live.php?mac=00:1B:79:F9:2A:14&stream=373201&extension=m3u8/" \
             -i logo.jpg \
-            -filter_complex "[1:v]scale=220:120[scaled_logo];[0:v][scaled_logo]overlay=W-w-180:15[v]" \
+            -filter_complex "[1:v]scale=250:140[scaled_logo];[0:v][scaled_logo]overlay=W-w-280:15[v]" \
             -map "[v]" \
             -c:a copy \
             -c:v libx264 -preset ultrafast -b:v 3000k \
