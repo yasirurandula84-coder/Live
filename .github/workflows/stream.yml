@@ -1,4 +1,4 @@
-name: Continuous Anti-Error Stream to Rumble
+Name: Continuous Auto-Reconnect Stream to Rumble
 
 on:
   workflow_dispatch:
@@ -20,7 +20,25 @@ jobs:
         run: |
           curl -L "https://raw.githubusercontent.com/yasirurandula84-coder/Live/refs/heads/main/IMG_20261105_161937_822.jpg" --output logo.jpg
 
-      - name: Start Ultra-Resilient Continuous Stream
+      - name: Start Robust Continuous Stream
         run: |
-          ffmpeg -y -re -fflags +genpts+nobuffer -use_wallclock_as_timestamps 1 -timeout 15000000 -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 10 -reconnect_at_eof 1 -reconnect_on_network_error 1 -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" -i "http://line.tivi-ott.net/play/live.php?mac=00:1B:79:F9:2A:14&stream=373201&extension=m3u8/" -i logo.jpg -filter_complex "[1:v]scale=250:140[scaled_logo];[0:v][scaled_logo]overlay=W-w-280:15[v]" -map "[v]" -map 0:a -c:v libx264 -preset ultrafast -b:v 3000k -g 60 -r 30 -c:a aac -b:a 128k -ar 44100 -ac 2 -f flv "rtmp://rtmp.rumble.com/live/r-4nqzrs-fmy7-hvpx-92e7cc"
-          
+          ffmpeg -y \
+            -re \
+            -fflags +genpts+nobuffer \
+            -use_wallclock_as_timestamps 1 \
+            -timeout 15000000 \
+            -reconnect 1 \
+            -reconnect_streamed 1 \
+            -reconnect_delay_max 10 \
+            -reconnect_at_eof 1 \
+            -reconnect_on_network_error 1 \
+            -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
+            -i "http://line.tivi-ott.net/play/live.php?mac=00:1B:79:F9:2A:14&stream=373201&extension=m3u8/" \
+            -i logo.jpg \
+            -filter_complex "[1:v]scale=250:140[scaled_logo];[0:v][scaled_logo]overlay=W-w-280:15[v]" \
+            -map "[v]" \
+            -map 0:a \
+            -c:v libx264 -preset ultrafast -b:v 3000k -g 60 -r 30 \
+            -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            -f flv "rtmp://rtmp.rumble.com/live/r-4nqzrs-fmy7-hvpx-92e7cc"
+            
