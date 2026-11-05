@@ -1,4 +1,4 @@
-name: Puppeteer Browser Capture to Rumble
+name: Puppeteer DASH Stream to Rumble
 
 on:
   workflow_dispatch:
@@ -49,8 +49,17 @@ jobs:
             });
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
-            await page.goto('http://line.tivi-ott.net/play/live.php?mac=00:1B:79:F9:2A:14&stream=373201&extension=m3u8/', { waitUntil: 'networkidle2' });
-            console.log('Browser started and playing stream...');
+            await page.goto('https://tv.sphublive.com/dash/mpd?manifest=https://ABGPU4GAAAAAAAAME77EHQQ2GEEW7.ta.bia-cf.live.pv-cdn.net/bom-nitro/live/clients/dash/enc/b3b3fkmrbl/out/v1/1084d5c9a97a4c5b9f9554c88f486646/cenc.mpd&keyid=82dfca238e8c4b430a3269db71965db9&key=a00b28caf4ac628e77a553d440c0ddca', { waitUntil: 'networkidle2' });
+            
+            // වීඩියෝව විවෘත වූ පසු ස්වයංක්‍රීයව Full Screen කිරීමට
+            await new Promise(resolve => setTimeout(resolve, 4000));
+            await page.evaluate(() => {
+              if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+              }
+            });
+
+            console.log('DASH Player started in Fullscreen mode...');
             await new Promise(() => {});
           })();
           EOF
@@ -58,7 +67,7 @@ jobs:
 
       - name: Start FFmpeg Capture and Stream to Rumble
         run: |
-          sleep 5
+          sleep 10
           ffmpeg -y \
             -f x11grab -video_size 1280x720 -framerate 30 -i :99.0 \
             -f pulse -i virtual_sink.monitor \
