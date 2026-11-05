@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Azure Kernel Compatible)
+Name: Stream Direct M3u8 to Rumble
 
 on:
   workflow_dispatch:
@@ -10,120 +10,17 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Dependencies
+      - name: Install FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            ffmpeg \
-            xvfb \
-            pulseaudio \
-            alsa-utils \
-            fonts-dejavu-core \
-            curl \
-            wget
-            
-          npm install puppeteer
+          sudo apt-get install -y ffmpeg
 
-      - name: Start Virtual Display & Stream
+      - name: Start Direct Stream to Rumble
         run: |
-          Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
-          export DISPLAY=:99
-
-          pulseaudio --start --exit-idle-time=-1 || true
-          pactl load-module module-null-sink sink_name=virtual_sink sink_properties=device.description=Virtual_Sink || true
-          pactl set-default-sink virtual_sink || true
-          pactl set-default-source virtual_sink.monitor || true
-
-          cat << 'EOF' > launch.js
-          const puppeteer = require('puppeteer');
-
-          (async () => {
-            const browser = await puppeteer.launch({
-              headless: false,
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-gpu',
-                '--window-size=1280,720',
-                '--autoplay-policy=no-user-gesture-required',
-                '--start-fullscreen',
-                '--block-new-web-contents'
-              ]
-            });
-
-            const page = await browser.newPage();
-            await page.setViewport({ width: 1280, height: 720 });
-
-            browser.on('targetcreated', async (target) => {
-              if (target.type() === 'page') {
-                const newPage = await target.page();
-                if (newPage && newPage !== page) {
-                  await newPage.close();
-                }
-              }
-            });
-
-            await page.goto('https://footfytv.pro/watch/4896', {
-              waitUntil: 'networkidle2'
-            });
-
-            await new Promise(r => setTimeout(r, 6000));
-
-            await page.evaluate(async () => {
-              window.open = function() { return null; };
-
-              const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
-              const nplliveBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('npl live'));
-              
-              if (nplliveBtn) {
-                nplliveBtn.click();
-              }
-
-              await new Promise(resolve => setTimeout(resolve, 3000));
-
-              // Auto remove "Footy Live" or similar floating overlay logos dynamically
-              setInterval(() => {
-                const allElements = document.querySelectorAll('div, span, img, a');
-                allElements.forEach(el => {
-                  const text = el.innerText || el.alt || '';
-                  if (text.toLowerCase().includes('footy live') || text.toLowerCase().includes('footylive')) {
-                    el.remove();
-                  }
-                });
-              }, 1000);
-
-              const video = document.querySelector('video');
-              if (video) {
-                video.muted = false;
-                video.volume = 1.0;
-                video.play();
-                
-                if (video.requestFullscreen) {
-                  video.requestFullscreen();
-                } else if (video.webkitRequestFullscreen) {
-                  video.webkitRequestFullscreen();
-                }
-              }
-            });
-          })();
-          EOF
-
-          node launch.js > /dev/null 2>&1 &
-          sleep 18
-
-          # High Quality Clean FFmpeg Streaming (Increased Bitrate for HD & Full Original Audio)
           ffmpeg -y \
-            -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
-            -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-            -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 4500k -maxrate 5000k -bufsize 10000k \
-            -max_muxing_queue_size 2048 \
-            -c:a aac -b:a 192k -ar 44100 -ac 2 \
+            -re \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-            -flvflags no_duration_filesize \
-            -f flv "rtmp://stream.livepush.io/live/rtmp_ef89878a908e457691eda888602a67ee"
-            
+            -i "https://footfytv.pro/proxy/direct?url=https%3A%2F%2Ffa723fc1b171.euc12.playlist.live-video.net%2Fv1%2Fplaylist%2FCv8FBbNvci_cSBb8WnvDXf1pOZA0_-3M2ljDOwvLK-MufsvFxUfbIey70WoVroovtb2x9IDd8pkW36hZ07KyWDn7uVq1nQcvF0yLGprqNc7PQAJV0xTA4-8WTgSdnNSHjIlQp8UkXxwiIfxYSIhohRqqO0k7knT6RU0be4Rra22D-vliEMOgBOnMYjbQ0Het9Z2LelO4jf7tjB-fOqHyhyZ2FPtLqZdlwNxTT2JDS48cqetoVll6nySGottP6Cf9HD_GMfqbqDYO3CQiY-Klz9bNuMsHI3YF33VIYQOKxRWPAyd_OUk3B7pYW_Sh1RLfFS7dxBoeAXzTdWc8G0OF2ez_RpE709mp-3vHuYgn9Mhr4yjqXsi66dyPpnTY0JE5Ih8LcLLNdGR70AaSW3FtKjtK5SgYb1DkG6kZJRuN581oqU8q8ODSZyf2nEtPZaNS73Ws6mTHpF0eUNbDEBfn_Gv76Fty1EumaMsq5ND9pxPpap14K4MCaVpb4Pb-Uo3Egri3dybK-EV5f2Td3kR956Zs72fdWUb1rBZi8jGW0r7-aZ7zhTPyxFUPC-2543tdv0ZqX3yuIjjZ_YMwYgp5aU1wUCUAynVoB8iui6P_upd7B9a8Y07cpt06GT-GZklgT5YTHKGrfW_Yn_gmUtKlFpyQZlrAexrzABkyiSK_dufbzHY3ulm2Je3GEFYKNeUbFliN3oBi_rgfDhZap2ngS2-AsUjebwUs3_vrGZLiQvctSAJ1PxpbcWEdiAY47UL6ABe3o1V9t8S4VFbLGsqTTD_4ZRejBRmzgWdlWMTqofvMH3wObU2C5kDy7flYCGUVZ12W098PSrB3rvDsHhz2DqduUb-vE1x3GZZhbGjHcZF28lpgN4KT12ADe9Gemq-Qv6ViCoOos8ztQhnkVvTEFZTxcNCG63ZngCkoAawueZNecV9vcV1zBWOG8HN4HOc9wAHoo0gXAost2mISghyjdAuqZPaMVoZDfXHiIzNtFgCqLvHYjvfz6fm2YT49bxrKye0aDKjxGrQeIDkZXZj_qyABKglldS13ZXN0LTIwvxA.m3u8" \
+            -c:v copy \
+            -c:a copy \
+            -f flv "rtmp://rtmp.rumble.com/live/k-z2y3-bnsw-erh4-0xg5-a11f55"
