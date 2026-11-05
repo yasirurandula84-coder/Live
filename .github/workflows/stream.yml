@@ -1,4 +1,4 @@
-name: Live View 1xBet Stream (Serveo SSH Tunnel)
+name: Stream FanCode Original Stream to Livepush
 
 on:
   workflow_dispatch:
@@ -10,135 +10,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            ffmpeg \
-            xvfb \
-            pulseaudio \
-            alsa-utils \
-            fonts-dejavu-core \
-            curl \
-            wget \
-            x11vnc \
-            novnc \
-            websockify \
-            openssh-client
-            
-          npm install puppeteer
+            ffmpeg
 
-      - name: Start Virtual Display & Live Viewer
+      - name: Start Clean Stream with FFmpeg
         run: |
-          Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
-          export DISPLAY=:99
-
-          # PulseAudio Setup
-          pulseaudio --start --exit-idle-time=-1 || true
-          pactl load-module module-null-sink sink_name=virtual_sink sink_properties=device.description=Virtual_Sink || true
-          pactl set-default-sink virtual_sink || true
-          
-          sleep 2
-          SINK_MONITOR=$(pactl list sources short | grep virtual_sink | awk '{print $2}')
-          echo "Using audio source: $SINK_MONITOR"
-
-          # Start noVNC web server on port 6080
-          websockify --web /usr/share/novnc/ 6080 localhost:5900 > /dev/null 2>&1 &
-          x11vnc -display :99 -forever -nopw -listen localhost -port 5900 > /dev/null 2>&1 &
-
-          # Start Serveo SSH tunnel to forward port 6080 to a public URL
-          # (Host key checking disabled for smooth background connection)
-          ssh -o StrictHostKeyChecking=no -R 80:localhost:6080 serveo.net > serveo.log 2>&1 &
-          
-          # Wait and get the public URL from serveo log
-          sleep 6
-          SERVEO_URL=$(grep -o 'https://[a-zA-Z0-9.-]*\.serveo.net' serveo.log | head -n 1)
-          echo "====================================================="
-          echo "🌐 LIVE STREAM VIEWING URL: $SERVEO_URL/vnc.html?autoconnect=true"
-          echo "====================================================="
-
-          cat << 'EOF' > launch.js
-          const puppeteer = require('puppeteer');
-
-          (async () => {
-            const browser = await puppeteer.launch({
-              headless: false,
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-gpu',
-                '--window-size=1280,720',
-                '--autoplay-policy=no-user-gesture-required',
-                '--start-fullscreen',
-                '--block-new-web-contents'
-              ]
-            });
-
-            const page = await browser.newPage();
-            await page.setViewport({ width: 1280, height: 720 });
-
-            // 1xBet Login
-            await page.goto('https://lk.1x-bet.mobi/en/user/login', { waitUntil: 'networkidle2' });
-            await new Promise(r => setTimeout(r, 4000));
-
-            await page.type('input[type="text"], input[name*="login"], input[name*="user"], input[name*="id"]', '1866534535', { delay: 50 });
-            await page.type('input[type="password"]', 'Barman9agenda3Handed-', { delay: 50 });
-            await new Promise(r => setTimeout(r, 2000));
-
-            await page.evaluate(() => {
-              const buttons = Array.from(document.querySelectorAll('button'));
-              const loginBtn = buttons.find(b => b.textContent && (b.textContent.toLowerCase().includes('log') || b.textContent.toLowerCase().includes('enter')));
-              if (loginBtn) loginBtn.click();
-            });
-
-            await new Promise(r => setTimeout(r, 8000));
-
-            // Go to Match
-            await page.goto('https://lk.1x-bet.mobi/en/live/cricket/2791573-nepal-premier-league/768167482-lumbini-lions-janakpur-bolts', { waitUntil: 'networkidle2' });
-            await new Promise(r => setTimeout(r, 6000));
-
-            await page.evaluate(async () => {
-              window.open = function() { return null; };
-              const playBtns = Array.from(document.querySelectorAll('button, div, span')).filter(el => el.textContent && el.textContent.toLowerCase().includes('stream'));
-              if(playBtns.length > 0) playBtns[0].click();
-
-              await new Promise(resolve => setTimeout(resolve, 3000));
-
-              const video = document.querySelector('video');
-              if (video) {
-                video.muted = false;
-                video.volume = 1.0;
-                video.play();
-                if (video.requestFullscreen) video.requestFullscreen();
-              }
-            });
-          })();
-          EOF
-
-          node launch.js > /dev/null 2>&1 &
-          sleep 25
-
-          # FFmpeg recording/streaming
+          # Direct FFmpeg streaming with original video/audio and no overlays
           ffmpeg -y \
-            -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
-            -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-            -map_metadata -1 \
-            -filter_complex \
-            "[0:v]crop=1280:680:0:40,\
-            scale=1260:670,\
-            pad=1280:720:(ow-iw)/2:(oh-ih)/2:black,\
-            eq=brightness=0.04:contrast=1.08:saturation=1.05,\
-            noise=alls=25:allf=t+u,\
-            drawbox=x=1130:y=15:w=140:h=90:color=blue:t=fill,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='LIVE':x=1165:y=48:fontsize=24:fontcolor=yellow,\
-            drawbox=x=980:y=115:w=280:h=35:color=black@0.9:t=fill,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='🔴 HD BROADCAST':x=990:y=122:fontsize=16:fontcolor=yellow,\
-            drawtext=text='PLEASE FOLLOW MY PAGE':x=350:y=350:fontsize=36:fontcolor=yellow:box=1:boxcolor=black@0.8:boxborderw=5[v]; \
-            [1:a]highpass=f=200,lowpass=f=3000,asetrate=44100*1.4,atempo=0.71,aecho=0.8:0.88:100:0.4,volume=1.5[a]" \
-            -map "[v]" -map "[a]" \
-            -t 300 -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 96k test_stream.mp4
+            -headers "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36\r\nReferer: https://fancode.com/\r\nOrigin: https://fancode.com/\r\n" \
+            -i "https://in-mc-flive.fancode.com/mumbai/4250368_english_hls_7ea136c62c30127_1ta-di_h264/1080p.m3u8?hdntl=Expires=1793947397~_GO=Generated~acl=/mumbai/4250368_english_hls_7ea136c62c30127_1ta-di_h264/*~SessionID=7814838588_watcho_9358b9e2-07dc-4c~Signature=AV7HGj4Hqp0E1H8NKYuPRn66pNPA9aqZ1MsiSQ1BNsucHU8j7Hul36rCbQjKDZLEwqU0_6OygsjIM1ViOh1S-CGRkecL" \
+            -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 2500k -maxrate 3000k -bufsize 6000k \
+            -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            -flvflags no_duration_filesize \
+            -f flv "rtmp://stream.livepush.io/live/rtmp_ef89878a908e457691eda888602a67ee"
+            
