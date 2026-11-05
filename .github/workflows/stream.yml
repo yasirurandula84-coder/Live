@@ -6,7 +6,7 @@ on:
 jobs:
   stream:
     runs-on: ubuntu-latest
-    timeout-minutes: 360 # පැය 6 සීමාව
+    timeout-minutes: 360
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -22,7 +22,6 @@ jobs:
 
       - name: Start Robust Continuous Stream
         run: |
-          # Stream එක අතරමැදදී කැඩුනොත් auto restart වෙන loop එක
           while true; do
             echo "Starting FFmpeg stream..."
             ffmpeg -y \
