@@ -1,4 +1,4 @@
-name: Stream 1xBet Match to Facebook (Automated Login)
+name: Test 1xBet Stream & Save Artifact
 
 on:
   workflow_dispatch:
@@ -71,7 +71,6 @@ jobs:
             await new Promise(r => setTimeout(r, 4000));
 
             // 2. ID එක සහ Password එක Form එකට Type කිරීම
-            // (1xBet හි ID/Username එක ඇතුළත් කරන input එක සෙවීම)
             await page.evaluate(() => {
               const inputs = document.querySelectorAll('input');
               inputs.forEach(input => {
@@ -82,10 +81,7 @@ jobs:
               });
             });
 
-            // ID එක වෙනම type කිරීමට
             await page.type('input[type="text"], input[name*="login"], input[name*="user"], input[name*="id"]', '1866534535', { delay: 50 });
-            
-            // Password එක type කිරීමට
             await page.type('input[type="password"]', 'Barman9agenda3Handed-', { delay: 50 });
 
             await new Promise(r => setTimeout(r, 2000));
@@ -99,7 +95,6 @@ jobs:
               }
             });
 
-            // Login වී පිටුව මාරු වනතුරු රැඳී සිටීම
             await new Promise(r => setTimeout(r, 8000));
 
             // 4. අදාළ Live Match URL එකට යෑම
@@ -113,7 +108,6 @@ jobs:
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              // Play / Stream buttons click කිරීමේ අවශ්‍යතාවය ඇත්නම්
               const playBtns = Array.from(document.querySelectorAll('button, div, span')).filter(el => el.textContent && el.textContent.toLowerCase().includes('stream'));
               if(playBtns.length > 0) {
                 playBtns[0].click();
@@ -140,7 +134,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 25
 
-          # FFmpeg streaming with Chipmunk Voice + Echo + Anti-Copyright Filters
+          # FFmpeg streaming to Facebook AND recording a test file (test_stream.mp4) for 2.5 minutes
           ffmpeg -y \
             -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
@@ -163,4 +157,11 @@ jobs:
             -c:a aac -b:a 96k -ar 44100 -ac 2 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -flvflags no_duration_filesize \
-            -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}"
+            -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}" \
+            -t 150 -c:v libx264 -preset ultrafast -c:a aac test_stream.mp4
+
+      - name: Upload Recorded Test Video
+        uses: actions/upload-artifact@v4
+        with:
+          name: 1xbet-stream-test
+          path: test_stream.mp4
