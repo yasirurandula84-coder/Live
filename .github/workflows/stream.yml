@@ -34,10 +34,15 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
+          # PulseAudio Setup Fix
           pulseaudio --start --exit-idle-time=-1 || true
-          pactl load-module module-null-sink sink_name=virtual_sink || true
+          pactl load-module module-null-sink sink_name=virtual_sink sink_properties=device.description=Virtual_Sink || true
           pactl set-default-sink virtual_sink || true
-          pactl set-default-source virtual_sink.monitor || true
+          
+          # Get the correct sink monitor source index/name
+          sleep 2
+          SINK_MONITOR=$(pactl list sources short | grep virtual_sink | awk '{print $2}')
+          echo "Using audio source: $SINK_MONITOR"
 
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
@@ -84,7 +89,7 @@ jobs:
                 fancodefhdBtn.click();
               }
 
-              await new Promise(resolve => setTimeout(resolve, 3000));
+              await new Promise(resolve => setTimeout(resolve, 4000));
 
               const video = document.querySelector('video');
               if (video) {
@@ -103,13 +108,12 @@ jobs:
           EOF
 
           node launch.js > /dev/null 2>&1 &
-          sleep 18
+          sleep 20
 
-          # Full FFmpeg Streaming with 3-minute Intro Audio & Anti-Copyright Filters
+          # Clean FFmpeg streaming command without looping feedback tone
           ffmpeg -y \
             -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-            -f lavfi -i "sine=frequency=800:duration=180" \
             -map_metadata -1 \
             -filter_complex \
             "[0:v]crop=1280:680:0:40,\
@@ -120,11 +124,8 @@ jobs:
             drawbox=x=1130:y=15:w=140:h=90:color=blue:t=fill,\
             drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='LIVE':x=1165:y=48:fontsize=24:fontcolor=yellow,\
             drawbox=x=980:y=115:w=280:h=35:color=black@0.9:t=fill,\
-            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='🔴 HD BROADCAST':x=990:y=122:fontsize=16:fontcolor=yellow,\
-            drawtext=text='PLEASE FOLLOW MY PAGE':x=350:y=350:fontsize=36:fontcolor=yellow:box=1:boxcolor=black@0.8:boxborderw=5[v]; \
-            [2:a]asetrate=44100*1.6,atempo=0.75,aecho=0.8:0.88:150:0.5,volume=1.8[intro_a]; \
-            [1:a]highpass=f=350,lowpass=f=2700,asetrate=44100*1.22,atempo=0.82,aecho=0.8:0.88:80:0.3,volume=1.2[match_a]; \
-            [intro_a][match_a]acrossfade=d=3:c1=tri:c2=tri[a]" \
+            drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='🔴 HD BROADCAST':x=990:y=122:fontsize=16:fontcolor=yellow[v]; \
+            [1:a]highpass=f=200,lowpass=f=3000,volume=1.5[a]" \
             -map "[v]" -map "[a]" \
             -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 550k -maxrate 750k -bufsize 1500k \
             -max_muxing_queue_size 2048 \
