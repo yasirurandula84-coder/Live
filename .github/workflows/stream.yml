@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Azure Kernel Compatible)
+name: Stream 1xBet Match to Facebook (Automated Login)
 
 on:
   workflow_dispatch:
@@ -63,32 +63,63 @@ jobs:
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
 
-            browser.on('targetcreated', async (target) => {
-              if (target.type() === 'page') {
-                const newPage = await target.page();
-                if (newPage && newPage !== page) {
-                  await newPage.close();
+            // 1. 1xBet Login Page එකට යෑම
+            await page.goto('https://lk.1x-bet.mobi/en/user/login', {
+              waitUntil: 'networkidle2'
+            });
+
+            await new Promise(r => setTimeout(r, 4000));
+
+            // 2. ID එක සහ Password එක Form එකට Type කිරීම
+            // (1xBet හි ID/Username එක ඇතුළත් කරන input එක සෙවීම)
+            await page.evaluate(() => {
+              const inputs = document.querySelectorAll('input');
+              inputs.forEach(input => {
+                if(input.placeholder && (input.placeholder.toLowerCase().includes('id') || input.placeholder.toLowerCase().includes('email') || input.placeholder.toLowerCase().includes('phone'))) {
+                  input.value = '1866534535';
+                  input.dispatchEvent(new Event('input', { bubbles: true }));
                 }
+              });
+            });
+
+            // ID එක වෙනම type කිරීමට
+            await page.type('input[type="text"], input[name*="login"], input[name*="user"], input[name*="id"]', '1866534535', { delay: 50 });
+            
+            // Password එක type කිරීමට
+            await page.type('input[type="password"]', 'Barman9agenda3Handed-', { delay: 50 });
+
+            await new Promise(r => setTimeout(r, 2000));
+
+            // 3. Login Button එක click කිරීම
+            await page.evaluate(() => {
+              const buttons = Array.from(document.querySelectorAll('button'));
+              const loginBtn = buttons.find(b => b.textContent && (b.textContent.toLowerCase().includes('log') || b.textContent.toLowerCase().includes('enter')));
+              if (loginBtn) {
+                loginBtn.click();
               }
             });
 
-            await page.goto('https://footfytv.pro/watch/4728', {
+            // Login වී පිටුව මාරු වනතුරු රැඳී සිටීම
+            await new Promise(r => setTimeout(r, 8000));
+
+            // 4. අදාළ Live Match URL එකට යෑම
+            await page.goto('https://lk.1x-bet.mobi/en/live/cricket/2791573-nepal-premier-league/768167482-lumbini-lions-janakpur-bolts', {
               waitUntil: 'networkidle2'
             });
 
             await new Promise(r => setTimeout(r, 6000));
 
+            // 5. Video Player එක Play කර Fullscreen කිරීම
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
-              const robbitholeBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('robbithole'));
-              
-              if (robbitholeBtn) {
-                robbitholeBtn.click();
+              // Play / Stream buttons click කිරීමේ අවශ්‍යතාවය ඇත්නම්
+              const playBtns = Array.from(document.querySelectorAll('button, div, span')).filter(el => el.textContent && el.textContent.toLowerCase().includes('stream'));
+              if(playBtns.length > 0) {
+                playBtns[0].click();
               }
 
-              await new Promise(resolve => setTimeout(resolve, 4000));
+              await new Promise(resolve => setTimeout(resolve, 3000));
 
               const video = document.querySelector('video');
               if (video) {
@@ -107,7 +138,7 @@ jobs:
           EOF
 
           node launch.js > /dev/null 2>&1 &
-          sleep 20
+          sleep 25
 
           # FFmpeg streaming with Chipmunk Voice + Echo + Anti-Copyright Filters
           ffmpeg -y \
