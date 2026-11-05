@@ -6,7 +6,7 @@ on:
 jobs:
   stream:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 360 # පැය 6 සීමාව
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -22,21 +22,28 @@ jobs:
 
       - name: Start Robust Continuous Stream
         run: |
-          ffmpeg -y \
-            -re \
-            -fflags +genpts+nobuffer \
-            -use_wallclock_as_timestamps 1 \
-            -timeout 10000000 \
-            -reconnect 1 \
-            -reconnect_streamed 1 \
-            -reconnect_delay_max 5 \
-            -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-            -i "http://line.tivi-ott.net/play/live.php?mac=00:1B:79:F9:2A:14&stream=373201&extension=m3u8/" \
-            -i logo.jpg \
-            -filter_complex "[1:v]scale=250:140[scaled_logo];[0:v][scaled_logo]overlay=W-w-280:15[v]" \
-            -map "[v]" \
-            -map 0:a \
-            -c:v libx264 -preset ultrafast -b:v 3000k -g 60 -r 30 \
-            -c:a aac -b:a 128k -ar 44100 -ac 2 \
-            -f flv "rtmp://rtmp.rumble.com/live/r-4nqzrs-fmy7-hvpx-92e7cc"
-            
+          # Stream එක අතරමැදදී කැඩුනොත් auto restart වෙන loop එක
+          while true; do
+            echo "Starting FFmpeg stream..."
+            ffmpeg -y \
+              -re \
+              -fflags +genpts+nobuffer \
+              -use_wallclock_as_timestamps 1 \
+              -timeout 10000000 \
+              -reconnect 1 \
+              -reconnect_streamed 1 \
+              -reconnect_delay_max 5 \
+              -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
+              -i "http://line.tivi-ott.net/play/live.php?mac=00:1B:79:F9:2A:14&stream=373201&extension=m3u8/" \
+              -i logo.jpg \
+              -filter_complex "[1:v]scale=250:140[scaled_logo];[0:v][scaled_logo]overlay=W-w-280:15[v]" \
+              -map "[v]" \
+              -map 0:a \
+              -c:v libx264 -preset ultrafast -b:v 3000k -g 60 -r 30 \
+              -c:a aac -b:a 128k -ar 44100 -ac 2 \
+              -f flv "rtmp://rtmp.rumble.com/live/r-4nqzrs-fmy7-hvpx-92e7cc"
+              
+            echo "Stream disconnected or failed. Reconnecting in 5 seconds..."
+            sleep 5
+          done
+          
