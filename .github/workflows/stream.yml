@@ -1,4 +1,4 @@
-name: Live View 1xBet Stream (No Download Needed)
+name: Live View 1xBet Stream (Serveo SSH Tunnel)
 
 on:
   workflow_dispatch:
@@ -28,7 +28,8 @@ jobs:
             wget \
             x11vnc \
             novnc \
-            websockify
+            websockify \
+            openssh-client
             
           npm install puppeteer
 
@@ -46,24 +47,19 @@ jobs:
           SINK_MONITOR=$(pactl list sources short | grep virtual_sink | awk '{print $2}')
           echo "Using audio source: $SINK_MONITOR"
 
-          # Start noVNC web server to view screen via browser
+          # Start noVNC web server on port 6080
           websockify --web /usr/share/novnc/ 6080 localhost:5900 > /dev/null 2>&1 &
           x11vnc -display :99 -forever -nopw -listen localhost -port 5900 > /dev/null 2>&1 &
 
-          # Download and run ngrok to get a public link
-          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
-          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt update && sudo apt install -y ngrok
-
-          # (ඔබ ngrok token එකක් දමාගැනීම වඩාත් හොඳය, නැතහොත් පහත command එකෙන් නිදහස් ලින්ක් එකක් ලබා දේ)
-          # ngrok authtoken YOUR_NGROK_AUTH_TOKEN
-          ngrok http 6080 > /dev/null 2>&1 &
+          # Start Serveo SSH tunnel to forward port 6080 to a public URL
+          # (Host key checking disabled for smooth background connection)
+          ssh -o StrictHostKeyChecking=no -R 80:localhost:6080 serveo.net > serveo.log 2>&1 &
           
-          # Get ngrok public URL
-          sleep 4
-          NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^"]*ngrok-free.app')
+          # Wait and get the public URL from serveo log
+          sleep 6
+          SERVEO_URL=$(grep -o 'https://[a-zA-Z0-9.-]*\.serveo.net' serveo.log | head -n 1)
           echo "====================================================="
-          echo "🌐 LIVE STREAM VIEWING URL: $NGROK_URL/vnc.html?autoconnect=true"
+          echo "🌐 LIVE STREAM VIEWING URL: $SERVEO_URL/vnc.html?autoconnect=true"
           echo "====================================================="
 
           cat << 'EOF' > launch.js
@@ -127,7 +123,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 25
 
-          # FFmpeg streaming/recording
+          # FFmpeg recording/streaming
           ffmpeg -y \
             -f x11grab -framerate 24 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
