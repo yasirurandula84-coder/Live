@@ -1,4 +1,4 @@
-Name: Stream Direct M3u8 to Rumble
+name: Stream Direct M3u8 to Rumble
 
 on:
   workflow_dispatch:
