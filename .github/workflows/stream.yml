@@ -1,4 +1,4 @@
-name: Stream Direct M3u8 to Rumble
+Name: Stream Direct M3u8 with Custom Logo to Rumble
 
 on:
   workflow_dispatch:
@@ -10,17 +10,26 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install FFmpeg
+      - name: Install FFmpeg & Curl
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg curl
 
-      - name: Start Direct Stream to Rumble
+      - name: Download Custom Logo
+        run: |
+          # Download custom logo using your provided raw link
+          curl -L "https://raw.githubusercontent.com/yasirurandula84-coder/Live/refs/heads/main/IMG_20261105_161937_822.jpg" --output logo.jpg
+
+      - name: Start Stream with Logo Overlay
         run: |
           ffmpeg -y \
             -re \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-            -i "https://footfytv.pro/proxy/direct?url=https%3A%2F%2Ffa723fc1b171.euc12.playlist.live-video.net%2Fv1%2Fplaylist%2FCv8FBbNvci_cSBb8WnvDXf1pOZA0_-3M2ljDOwvLK-MufsvFxUfbIey70WoVroovtb2x9IDd8pkW36hZ07KyWDn7uVq1nQcvF0yLGprqNc7PQAJV0xTA4-8WTgSdnNSHjIlQp8UkXxwiIfxYSIhohRqqO0k7knT6RU0be4Rra22D-vliEMOgBOnMYjbQ0Het9Z2LelO4jf7tjB-fOqHyhyZ2FPtLqZdlwNxTT2JDS48cqetoVll6nySGottP6Cf9HD_GMfqbqDYO3CQiY-Klz9bNuMsHI3YF33VIYQOKxRWPAyd_OUk3B7pYW_Sh1RLfFS7dxBoeAXzTdWc8G0OF2ez_RpE709mp-3vHuYgn9Mhr4yjqXsi66dyPpnTY0JE5Ih8LcLLNdGR70AaSW3FtKjtK5SgYb1DkG6kZJRuN581oqU8q8ODSZyf2nEtPZaNS73Ws6mTHpF0eUNbDEBfn_Gv76Fty1EumaMsq5ND9pxPpap14K4MCaVpb4Pb-Uo3Egri3dybK-EV5f2Td3kR956Zs72fdWUb1rBZi8jGW0r7-aZ7zhTPyxFUPC-2543tdv0ZqX3yuIjjZ_YMwYgp5aU1wUCUAynVoB8iui6P_upd7B9a8Y07cpt06GT-GZklgT5YTHKGrfW_Yn_gmUtKlFpyQZlrAexrzABkyiSK_dufbzHY3ulm2Je3GEFYKNeUbFliN3oBi_rgfDhZap2ngS2-AsUjebwUs3_vrGZLiQvctSAJ1PxpbcWEdiAY47UL6ABe3o1V9t8S4VFbLGsqTTD_4ZRejBRmzgWdlWMTqofvMH3wObU2C5kDy7flYCGUVZ12W098PSrB3rvDsHhz2DqduUb-vE1x3GZZhbGjHcZF28lpgN4KT12ADe9Gemq-Qv6ViCoOos8ztQhnkVvTEFZTxcNCG63ZngCkoAawueZNecV9vcV1zBWOG8HN4HOc9wAHoo0gXAost2mISghyjdAuqZPaMVoZDfXHiIzNtFgCqLvHYjvfz6fm2YT49bxrKye0aDKjxGrQeIDkZXZj_qyABKglldS13ZXN0LTIwvxA.m3u8" \
-            -c:v copy \
+            -i "https://footfytv.pro/proxy/direct?url=https%3A%2F%2Ffa723fc1b171.euc12.playlist.live-video.net%2Fv1%2Fplaylist%2Cv1%2Fplaylist%2FCv8FBbNvci_cSBb8WnvDXf1pOZA0_-3M2ljDOwvLK-MufsvFxUfbIey70WoVroovtb2x9IDd8pkW36hZ07KyWDn7uVq1nQcvF0yLGprqNc7PQAJV0xTA4-8WTgSdnNSHjIlQp8UkXxwiIfxYSIhohRqqO0k7knT6RU0be4Rra22D-vliEMOgBOnMYjbQ0Het9Z2LelO4jf7tjB-fOqHyhyZ2FPtLqZdlwNxTT2JDS48cqetoVll6nySGottP6Cf9HD_GMfqbqDYO3CQiY-Klz9bNuMsHI3YF33VIYQOKxRWPAyd_OUk3B7pYW_Sh1RLfFS7dxBoeAXzTdWc8G0OF2ez_RpE709mp-3vHuYgn9Mhr4yjqXsi66dyPpnTY0JE5Ih8LcLLNdGR70AaSW3FtKjtK5SgYb1DkG6kZJRuN581oqU8q8ODSZyf2nEtPZaNS73Ws6mTHpF0eUNbDEBfn_Gv76Fty1EumaMsq5ND9pxPpap14K4MCaVpb4Pb-Uo3Egri3dybK-EV5f2Td3kR956Zs72fdWUb1rBZi8jGW0r7-aZ7zhTPyxFUPC-2543tdv0ZqX3yuIjjZ_YMwYgp5aU1wUCUAynVoB8iui6P_upd7B9a8Y07cpt06GT-GZklgT5YTHKGrfW_Yn_gmUtKlFpyQZlrAexrzABkyiSK_dufbzHY3ulm2Je3GEFYKNeUbFliN3oBi_rgfDhZap2ngS2-AsUjebwUs3_vrGZLiQvctSAJ1PxpbcWEdiAY47UL6ABe3o1V9t8S4VFbLGsqTTD_4ZRejBRmzgWdlWMTqofvMH3wObU2C5kDy7flYCGUVZ12W098PSrB3rvDsHhz2DqduUb-vE1x3GZZhbGjHcZF28lpgN4KT12ADe9Gemq-Qv6ViCoOos8ztQhnkVvTEFZTxcNCG63ZngCkoAawueZNecV9vcV1zBWOG8HN4HOc9wAHoo0gXAost2mISghyjdAuqZPaMVoZDfXHiIzNtFgCqLvHYjvfz6fm2YT49bxrKye0aDKjxGrQeIDkZXZj_qyABKglldS13ZXN0LTIwvxA.m3u8" \
+            -i logo.jpg \
+            -filter_complex "[1:v]scale=130:70[scaled_logo];[0:v][scaled_logo]overlay=W-w-25:25[v]" \
+            -map "[v]" \
             -c:a copy \
+            -c:v libx264 -preset ultrafast -b:v 3000k \
             -f flv "rtmp://rtmp.rumble.com/live/k-z2y3-bnsw-erh4-0xg5-a11f55"
+            
