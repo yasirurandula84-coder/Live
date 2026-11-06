@@ -1,4 +1,4 @@
-name: Stream Sportplus to Rumble (Auto-Reconnect)
+name: Stream Cricgo3 to Rumble (Auto-Reconnect & Captcha Bypass)
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
             curl \
             wget
             
-          npm install puppeteer
+          npm install puppeteer-extra puppeteer-extra-plugin-stealth
 
       - name: Start Virtual Display & Stream
         run: |
@@ -40,7 +40,9 @@ jobs:
           pactl set-default-source virtual_sink.monitor || true
 
           cat << 'EOF' > launch.js
-          const puppeteer = require('puppeteer');
+          const puppeteer = require('puppeteer-extra');
+          const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+          puppeteer.use(StealthPlugin());
 
           (async () => {
             const browser = await puppeteer.launch({
@@ -68,12 +70,35 @@ jobs:
               }
             });
 
-            // New Sportplus URL
-            await page.goto('https://en.sportplus.watch/cricket/2791573/8365113/', {
+            // Cricgo3 URL with Captcha
+            await page.goto('https://playsza.st/player.php?id=cricgo3', {
               waitUntil: 'networkidle2'
             });
 
+            // Wait for Cloudflare page to fully render
             await new Promise(r => setTimeout(r, 6000));
+
+            // Advanced Cloudflare Checkbox finder & clicker
+            try {
+              const frames = page.frames();
+              for (const frame of frames) {
+                const frameName = frame.url();
+                if (frameName.includes('challenges.cloudflare.com') || frameName.includes('turnstile')) {
+                  console.log("Found Cloudflare frame!");
+                  await frame.evaluate(() => {
+                    const checkbox = document.querySelector('input[type="checkbox"]') || document.querySelector('.ctp-checkbox-container') || document.body;
+                    if (checkbox) {
+                      checkbox.click();
+                    }
+                  });
+                }
+              }
+            } catch (e) {
+              console.log("Captcha auto-click attempt failed or not needed.");
+            }
+
+            // Wait for verification to pass and redirect/load player
+            await new Promise(r => setTimeout(r, 10000));
 
             await page.evaluate(async () => {
               window.open = function() { return null; };
@@ -102,9 +127,9 @@ jobs:
           EOF
 
           node launch.js > /dev/null 2>&1 &
-          sleep 18
+          sleep 25
 
-          # FFmpeg streaming inside a While Loop for auto-reconnection if Rumble drops
+          # FFmpeg streaming inside a While Loop with Auto-Reconnect for Rumble
           while true; do
             echo "Starting/Restarting FFmpeg stream to Rumble..."
             ffmpeg -y \
