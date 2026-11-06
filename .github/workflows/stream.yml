@@ -1,4 +1,4 @@
-name: Stream Direct M3U8 with Headers to Rumble
+name: Stream Fancode M3U8 to Rumble (Fixed 403)
 
 on:
   workflow_dispatch:
@@ -25,11 +25,11 @@ jobs:
 
       - name: Start Direct M3U8 Stream to Rumble
         run: |
-          # FFmpeg streaming directly with custom Headers & Auto-Reconnect Loop
+          # FFmpeg streaming with full Fancode headers and auto-reconnect
           while true; do
             echo "Starting/Restarting FFmpeg stream from M3U8 to Rumble..."
             ffmpeg -y \
-              -headers "Referer: https://dai-fancode.pages.dev/\r\nOrigin: https://dai-fancode.pages.dev\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36\r\n" \
+              -headers "Host: in-mc-plive.fancode.com\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36\r\nAccept: */*\r\nAccept-Language: en-US,en;q=0.9\r\nOrigin: https://dai-fancode.pages.dev\r\nReferer: https://dai-fancode.pages.dev/\r\n" \
               -re -i "https://dai-fancode.pages.dev/mumbai/4250371_english_hls_6fd2449afb31959_1ta-di_h264/index.m3u8" \
               -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1500k -maxrate 2000k -bufsize 4000k \
               -c:a aac -b:a 128k -ar 44100 -ac 2 \
