@@ -70,7 +70,6 @@ jobs:
               }
             });
 
-            // Updated URL
             await page.goto('https://playsza.st/player.php?id=cricgo3', {
               waitUntil: 'networkidle2'
             });
@@ -106,7 +105,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-          # FFmpeg streaming - Clean feed to Rumble RTMP
+          # FFmpeg streaming - Clean feed to Rumble RTMP with new key
           ffmpeg -y \
             -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
@@ -114,5 +113,5 @@ jobs:
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -flvflags no_duration_filesize \
-            -f flv "rtmp://rtmp.rumble.com/live/k-bb40-himk-w2f9-hkgl-77b568"
+            -f flv "rtmp://rtmp.rumble.com/live/k-9v1e-qofn-s2hh-1kh7-480aa1"
             
