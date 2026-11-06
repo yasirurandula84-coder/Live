@@ -1,4 +1,4 @@
-name: Stream Sphublive DASH to Telegram
+name: Stream Sphublive DASH to Rumble
 
 on:
   workflow_dispatch:
@@ -108,9 +108,9 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 20
 
-          # FFmpeg streaming inside an Auto-Reconnect Loop for Telegram RTMPS
+          # FFmpeg streaming inside an Auto-Reconnect Loop for Rumble RTMP
           while true; do
-            echo "Starting/Restarting FFmpeg stream to Telegram..."
+            echo "Starting/Restarting FFmpeg stream to Rumble..."
             ffmpeg -y \
               -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
               -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
@@ -118,7 +118,7 @@ jobs:
               -c:a aac -b:a 128k -ar 44100 -ac 2 \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
               -flvflags no_duration_filesize \
-              -f flv "rtmps://dc5-1.rtmp.t.me/s/4363232898:B2Az5dt8l-5vdB9h-B42Gw" || true
+              -f flv "rtmp://rtmp.rumble.com/live/k-1iw0-i82b-16tx-rqpm-9867b3" || true
             
             echo "Stream disconnected. Reconnecting in 3 seconds..."
             sleep 3
