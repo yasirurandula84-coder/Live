@@ -1,4 +1,4 @@
-name: Stream Cricgo3 to Rumble (Cloudflare Bypass)
+name: Stream M3U8 to Rumble (Auto-Reconnect)
 
 on:
   workflow_dispatch:
@@ -20,127 +20,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             ffmpeg \
-            xvfb \
-            pulseaudio \
-            alsa-utils \
-            fonts-dejavu-core \
             curl \
             wget
-            
-          npm install puppeteer-extra puppeteer-extra-plugin-stealth
 
-      - name: Start Virtual Display & Stream
+      - name: Start Direct M3U8 Stream to Rumble
         run: |
-          Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
-          export DISPLAY=:99
-
-          pulseaudio --start --exit-idle-time=-1 || true
-          pactl load-module module-null-sink sink_name=virtual_sink || true
-          pactl set-default-sink virtual_sink || true
-          pactl set-default-source virtual_sink.monitor || true
-
-          cat << 'EOF' > launch.js
-          const puppeteer = require('puppeteer-extra');
-          const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-          puppeteer.use(StealthPlugin());
-
-          (async () => {
-            const browser = await puppeteer.launch({
-              headless: false,
-              args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-gpu',
-                '--window-size=1280,720',
-                '--autoplay-policy=no-user-gesture-required',
-                '--start-fullscreen',
-                '--block-new-web-contents'
-              ]
-            });
-
-            const page = await browser.newPage();
-            await page.setViewport({ width: 1280, height: 720 });
-
-            browser.on('targetcreated', async (target) => {
-              if (target.type() === 'page') {
-                const newPage = await target.page();
-                if (newPage && newPage !== page) {
-                  await newPage.close();
-                }
-              }
-            });
-
-            await page.goto('https://playsza.st/player.php?id=cricgo3', {
-              waitUntil: 'networkidle2'
-            });
-
-            // Wait for Cloudflare challenge to appear
-            await new Promise(r => setTimeout(r, 6000));
-
-            try {
-              // Find the Cloudflare Turnstile iframe and click it using mouse coordinates
-              const frames = page.frames();
-              for (const frame of frames) {
-                const frameUrl = frame.url();
-                if (frameUrl.includes('challenges.cloudflare.com') || frameUrl.includes('turnstile')) {
-                  console.log("Cloudflare frame found, attempting to click...");
-                  const element = await frame.$('body');
-                  if (element) {
-                    // Simulate human-like mouse movement and click inside the frame
-                    const box = await element.boundingBox();
-                    if (box) {
-                      await page.mouse.click(box.x + 50, box.y + 30);
-                    }
-                  }
-                }
-              }
-            } catch (e) {
-              console.log("Cloudflare auto-click error:", e);
-            }
-
-            // Wait for verification to complete and redirect to player
-            await new Promise(r => setTimeout(r, 10000));
-
-            await page.evaluate(async () => {
-              window.open = function() { return null; };
-
-              const playButton = document.querySelector('video, .jw-icon-playback, .vjs-big-play-button, .play-button');
-              if (playButton) {
-                playButton.click();
-              }
-
-              await new Promise(resolve => setTimeout(resolve, 3000));
-
-              const video = document.querySelector('video');
-              if (video) {
-                video.muted = false;
-                video.volume = 1.0;
-                video.play();
-                
-                if (video.requestFullscreen) {
-                  video.requestFullscreen();
-                } else if (video.webkitRequestFullscreen) {
-                  video.webkitRequestFullscreen();
-                }
-              }
-            });
-          })();
-          EOF
-
-          node launch.js > /dev/null 2>&1 &
-          sleep 25
-
-          # FFmpeg streaming with Auto-Reconnect for Rumble
+          # FFmpeg streaming directly from the .m3u8 link inside an Auto-Reconnect Loop
           while true; do
-            echo "Starting/Restarting FFmpeg stream to Rumble..."
+            echo "Starting/Restarting FFmpeg stream from M3U8 to Rumble..."
             ffmpeg -y \
-              -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
-              -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1200k -maxrate 1500k -bufsize 3000k \
+              -re -i "https://jn352.sportvideodata.com/4339746397539165665_4U3Mt5CdzlGb5FGbw9CM4ETbhVmc0N3Lx82Lt92YuUWbhdGN0Z2bz5ibkNmY/p9.m3u8" \
+              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1500k -maxrate 2000k -bufsize 4000k \
               -c:a aac -b:a 128k -ar 44100 -ac 2 \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
               -flvflags no_duration_filesize \
-              -f flv "rtmp://rtmp.rumble.com/live/k-1iw0-i82b-16tx-rqpm-9867b3" || true
+              -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
+              -f flv "rtmp://rtmp.rumble.com/live/k-9v1e-qofn-s2hh-1kh7-480aa1" || true
             
             echo "Stream disconnected. Reconnecting in 3 seconds..."
             sleep 3
