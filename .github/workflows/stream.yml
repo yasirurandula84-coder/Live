@@ -74,7 +74,24 @@ jobs:
               waitUntil: 'networkidle2'
             });
 
-            await new Promise(r => setTimeout(r, 6000));
+            await new Promise(r => setTimeout(r, 5000));
+
+            try {
+              const frames = page.frames();
+              for (const frame of frames) {
+                const checkbox = await frame.$('input[type="checkbox"], iframe, .ctp-checkbox-container, label');
+                if (checkbox) {
+                  await frame.evaluate(() => {
+                    const box = document.querySelector('input[type="checkbox"]') || document.querySelector('iframe');
+                    if (box) box.click();
+                  });
+                }
+              }
+            } catch (e) {
+              console.log("Captcha check skipped.");
+            }
+
+            await new Promise(r => setTimeout(r, 8000));
 
             await page.evaluate(async () => {
               window.open = function() { return null; };
@@ -103,15 +120,16 @@ jobs:
           EOF
 
           node launch.js > /dev/null 2>&1 &
-          sleep 18
+          sleep 20
 
-          # FFmpeg streaming - Clean feed to Rumble RTMP with new key
+          # FFmpeg streaming - Optimized for Rumble with Reconnect flags
           ffmpeg -y \
             -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-            -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1500k -maxrate 2000k -bufsize 4000k \
+            -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1200k -maxrate 1500k -bufsize 3000k \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -flvflags no_duration_filesize \
+            -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
             -f flv "rtmp://rtmp.rumble.com/live/k-9v1e-qofn-s2hh-1kh7-480aa1"
             
