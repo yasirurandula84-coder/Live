@@ -1,4 +1,4 @@
-name: Stream Fancode M3U8 to Rumble (Fixed 403)
+name: Stream NPL TV to Telegram
 
 on:
   workflow_dispatch:
@@ -20,22 +20,105 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             ffmpeg \
+            xvfb \
+            pulseaudio \
+            alsa-utils \
+            fonts-dejavu-core \
             curl \
             wget
+            
+          npm install puppeteer-extra puppeteer-extra-plugin-stealth
 
-      - name: Start Direct M3U8 Stream to Rumble
+      - name: Start Virtual Display & Stream
         run: |
-          # FFmpeg streaming with full Fancode headers and auto-reconnect
+          Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
+          export DISPLAY=:99
+
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_sink || true
+          pactl set-default-sink virtual_sink || true
+          pactl set-default-source virtual_sink.monitor || true
+
+          cat << 'EOF' > launch.js
+          const puppeteer = require('puppeteer-extra');
+          const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+          puppeteer.use(StealthPlugin());
+
+          (async () => {
+            const browser = await puppeteer.launch({
+              headless: false,
+              args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-gpu',
+                '--window-size=1280,720',
+                '--autoplay-policy=no-user-gesture-required',
+                '--start-fullscreen',
+                '--block-new-web-contents'
+              ]
+            });
+
+            const page = await browser.newPage();
+            await page.setViewport({ width: 1280, height: 720 });
+
+            browser.on('targetcreated', async (target) => {
+              if (target.type() === 'page') {
+                const newPage = await target.page();
+                if (newPage && newPage !== page) {
+                  await newPage.close();
+                }
+              }
+            });
+
+            // Target URL
+            await page.goto('https://npl-tv.pages.dev/npl?match=npl&id=6', {
+              waitUntil: 'networkidle2'
+            });
+
+            // Wait for player to load
+            await new Promise(r => setTimeout(r, 6000));
+
+            // Click play, unmute, and go full screen inside the page
+            await page.evaluate(async () => {
+              window.open = function() { return null; };
+
+              const playButton = document.querySelector('video, .jw-icon-playback, .vjs-big-play-button, .play-button, button');
+              if (playButton) {
+                playButton.click();
+              }
+
+              await new Promise(resolve => setTimeout(resolve, 3000));
+
+              const video = document.querySelector('video');
+              if (video) {
+                video.muted = false;
+                video.volume = 1.0;
+                video.play();
+                
+                if (video.requestFullscreen) {
+                  video.requestFullscreen();
+                } else if (video.webkitRequestFullscreen) {
+                  video.webkitRequestFullscreen();
+                }
+              }
+            });
+          })();
+          EOF
+
+          node launch.js > /dev/null 2>&1 &
+          sleep 20
+
+          # FFmpeg streaming inside an Auto-Reconnect Loop for Telegram RTMPS
           while true; do
-            echo "Starting/Restarting FFmpeg stream from M3U8 to Rumble..."
+            echo "Starting/Restarting FFmpeg stream to Telegram..."
             ffmpeg -y \
-              -headers "Host: in-mc-plive.fancode.com\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36\r\nAccept: */*\r\nAccept-Language: en-US,en;q=0.9\r\nOrigin: https://dai-fancode.pages.dev\r\nReferer: https://dai-fancode.pages.dev/\r\n" \
-              -re -i "https://dai-fancode.pages.dev/mumbai/4250371_english_hls_6fd2449afb31959_1ta-di_h264/index.m3u8" \
-              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1500k -maxrate 2000k -bufsize 4000k \
+              -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
+              -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
+              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1200k -maxrate 1500k -bufsize 3000k \
               -c:a aac -b:a 128k -ar 44100 -ac 2 \
+              -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
               -flvflags no_duration_filesize \
-              -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
-              -f flv "rtmp://rtmp.rumble.com/live/k-9v1e-qofn-s2hh-1kh7-480aa1" || true
+              -f flv "rtmps://dc5-1.rtmp.t.me/s/4363232898:B2Az5dt8l-5vdB9h-B42Gw" || true
             
             echo "Stream disconnected. Reconnecting in 3 seconds..."
             sleep 3
