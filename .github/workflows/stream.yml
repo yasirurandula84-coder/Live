@@ -1,4 +1,4 @@
-name: Stream NPL TV to Telegram
+name: Stream Sphublive DASH to Telegram
 
 on:
   workflow_dispatch:
@@ -70,19 +70,19 @@ jobs:
               }
             });
 
-            // Target URL
-            await page.goto('https://npl-tv.pages.dev/npl?match=npl&id=6', {
+            // Target DASH/MPD Stream Player URL
+            await page.goto('https://tv.sphublive.com/dash/mpd?manifest=https://ott-edge-mtdc04.nettv.com.np/npl/live_match3/index.mpd&keyid=b4d7fc89103597185058cc4c81a1800d&key=17062472ba2a3f1db709d3bb7761c936', {
               waitUntil: 'networkidle2'
             });
 
-            // Wait for player to load
+            // Wait for player container to load
             await new Promise(r => setTimeout(r, 6000));
 
-            // Click play, unmute, and go full screen inside the page
+            // Force play, unmute, and make video fullscreen
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              const playButton = document.querySelector('video, .jw-icon-playback, .vjs-big-play-button, .play-button, button');
+              const playButton = document.querySelector('video, .vjs-big-play-button, .play-button, button, div[class*="play"]');
               if (playButton) {
                 playButton.click();
               }
