@@ -140,7 +140,7 @@ jobs:
               -c:a aac -b:a 128k -ar 44100 -ac 2 \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
               -flvflags no_duration_filesize \
-              -f flv "rtmp://rtmp.rumble.com/live/k-9v1e-qofn-s2hh-1kh7-480aa1" || true
+              -f flv "rtmp://rtmp.rumble.com/live/k-1iw0-i82b-16tx-rqpm-9867b3" || true
             
             echo "Stream disconnected. Reconnecting in 3 seconds..."
             sleep 3
