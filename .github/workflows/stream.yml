@@ -1,4 +1,4 @@
-name: Stream Cricgo3 to Rumble (Auto-Reconnect & Captcha Bypass)
+name: Stream Cricgo3 to Rumble (Cloudflare Bypass)
 
 on:
   workflow_dispatch:
@@ -70,34 +70,35 @@ jobs:
               }
             });
 
-            // Cricgo3 URL with Captcha
             await page.goto('https://playsza.st/player.php?id=cricgo3', {
               waitUntil: 'networkidle2'
             });
 
-            // Wait for Cloudflare page to fully render
+            // Wait for Cloudflare challenge to appear
             await new Promise(r => setTimeout(r, 6000));
 
-            // Advanced Cloudflare Checkbox finder & clicker
             try {
+              // Find the Cloudflare Turnstile iframe and click it using mouse coordinates
               const frames = page.frames();
               for (const frame of frames) {
-                const frameName = frame.url();
-                if (frameName.includes('challenges.cloudflare.com') || frameName.includes('turnstile')) {
-                  console.log("Found Cloudflare frame!");
-                  await frame.evaluate(() => {
-                    const checkbox = document.querySelector('input[type="checkbox"]') || document.querySelector('.ctp-checkbox-container') || document.body;
-                    if (checkbox) {
-                      checkbox.click();
+                const frameUrl = frame.url();
+                if (frameUrl.includes('challenges.cloudflare.com') || frameUrl.includes('turnstile')) {
+                  console.log("Cloudflare frame found, attempting to click...");
+                  const element = await frame.$('body');
+                  if (element) {
+                    // Simulate human-like mouse movement and click inside the frame
+                    const box = await element.boundingBox();
+                    if (box) {
+                      await page.mouse.click(box.x + 50, box.y + 30);
                     }
-                  });
+                  }
                 }
               }
             } catch (e) {
-              console.log("Captcha auto-click attempt failed or not needed.");
+              console.log("Cloudflare auto-click error:", e);
             }
 
-            // Wait for verification to pass and redirect/load player
+            // Wait for verification to complete and redirect to player
             await new Promise(r => setTimeout(r, 10000));
 
             await page.evaluate(async () => {
@@ -129,7 +130,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 25
 
-          # FFmpeg streaming inside a While Loop with Auto-Reconnect for Rumble
+          # FFmpeg streaming with Auto-Reconnect for Rumble
           while true; do
             echo "Starting/Restarting FFmpeg stream to Rumble..."
             ffmpeg -y \
