@@ -1,4 +1,4 @@
-name: Stream Tamashaweb to Telegram
+name: Stream Tamashaweb to Telegram (HD Quality)
 
 on:
   workflow_dispatch:
@@ -31,7 +31,8 @@ jobs:
 
       - name: Start Virtual Display & Stream
         run: |
-          Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
+          # Resolution එක 1280x720 (HD) සිට 1920x1080 (Full HD) දක්වා වැඩි කළ හැක
+          Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
           pulseaudio --start --exit-idle-time=-1 || true
@@ -51,7 +52,7 @@ jobs:
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-gpu',
-                '--window-size=1280,720',
+                '--window-size=1920,1080',
                 '--autoplay-policy=no-user-gesture-required',
                 '--start-fullscreen',
                 '--block-new-web-contents'
@@ -59,7 +60,7 @@ jobs:
             });
 
             const page = await browser.newPage();
-            await page.setViewport({ width: 1280, height: 720 });
+            await page.setViewport({ width: 1920, height: 1080 });
 
             browser.on('targetcreated', async (target) => {
               if (target.type() === 'page') {
@@ -70,15 +71,12 @@ jobs:
               }
             });
 
-            // Tamashaweb Target URL
             await page.goto('https://tamashaweb.com/saff-football-championship-2026', {
               waitUntil: 'networkidle2'
             });
 
-            // Wait for player to load
             await new Promise(r => setTimeout(r, 6000));
 
-            // Force click play, unmute, and go fullscreen inside the page
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
@@ -108,14 +106,14 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 20
 
-          # FFmpeg streaming inside an Auto-Reconnect Loop for Telegram RTMPS
+          # FFmpeg streaming with Higher Bitrate & Full HD Resolution for crisp quality
           while true; do
-            echo "Starting/Restarting FFmpeg stream to Telegram..."
+            echo "Starting/Restarting HD FFmpeg stream to Telegram..."
             ffmpeg -y \
-              -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
+              -f x11grab -framerate 30 -video_size 1920x1080 -i :99.0 \
               -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1200k -maxrate 1500k -bufsize 3000k \
-              -c:a aac -b:a 128k -ar 44100 -ac 2 \
+              -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 3000k -maxrate 4000k -bufsize 8000k \
+              -c:a aac -b:a 192k -ar 44100 -ac 2 \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
               -flvflags no_duration_filesize \
               -f flv "rtmps://dc5-1.rtmp.t.me/s/4363232898:B2Az5dt8l-5vdB9h-B42Gw" || true
