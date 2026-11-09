@@ -81,10 +81,10 @@ jobs:
               window.open = function() { return null; };
 
               const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
-              const targetBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('ptv sports'));
+              const ptvsportsBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('ptv sports'));
               
-              if (targetBtn) {
-                targetBtn.click();
+              if (ptvsportsBtn) {
+                ptvsportsBtn.click();
                 console.log("Clicked PTV Sports button");
               }
 
