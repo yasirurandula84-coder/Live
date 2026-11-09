@@ -1,4 +1,4 @@
-name: Stream Match to Kick (Clean HD)
+name: Stream PTV Sports to Kick (Clean HD)
 
 on:
   workflow_dispatch:
@@ -69,42 +69,37 @@ jobs:
               timeout: 60000
             });
 
-            console.log("Waiting for player to load automatically...");
+            console.log("Waiting for player to load...");
             await new Promise(r => setTimeout(r, 10000));
 
-            // Auto-detect video, force play, and fit fullscreen without clicking buttons
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              const videos = document.querySelectorAll('video');
-              let mainVideo = videos[0];
+              const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
+              const targetBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('ptv sports'));
               
-              if (videos.length > 1) {
-                let maxSize = 0;
-                videos.forEach(v => {
-                  const rect = v.getBoundingClientRect();
-                  const size = rect.width * rect.height;
-                  if (size > maxSize) {
-                    maxSize = size;
-                    mainVideo = v;
-                  }
-                });
+              if (targetBtn) {
+                targetBtn.click();
+                console.log("Clicked PTV Sports button");
               }
 
-              if (mainVideo) {
-                mainVideo.muted = false;
-                mainVideo.style.position = 'fixed';
-                mainVideo.style.top = '0';
-                mainVideo.style.left = '0';
-                mainVideo.style.width = '1280px';
-                mainVideo.style.height = '720px';
-                mainVideo.style.zIndex = '999999';
-                mainVideo.style.objectFit = 'cover';
-                
-                mainVideo.play().catch(e => {});
+              await new Promise(resolve => setTimeout(resolve, 5000));
 
-                if (mainVideo.requestFullscreen) {
-                  mainVideo.requestFullscreen().catch(() => {});
+              const video = document.querySelector('video');
+              if (video) {
+                video.muted = false;
+                video.style.position = 'fixed';
+                video.style.top = '0';
+                video.style.left = '0';
+                video.style.width = '1280px';
+                video.style.height = '720px';
+                video.style.zIndex = '999999';
+                video.style.objectFit = 'cover';
+                
+                video.play().catch(e => {});
+
+                if (video.requestFullscreen) {
+                  video.requestFullscreen().catch(() => {});
                 }
               }
             });
@@ -116,7 +111,7 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 25
 
-          # Clean FFmpeg Pipeline with Kick/IVS RTMP parameters (No filters, No audio effects)
+          # Clean FFmpeg Pipeline with Kick/IVS RTMPS Destination (No filters, No audio effects)
           cat << 'FFEOF' > run_stream.sh
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
