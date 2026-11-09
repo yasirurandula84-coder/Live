@@ -1,4 +1,4 @@
-name: Stream Footfytv to IVS/RTMPS (HD)
+name: Stream PTV Sports from Footfytv to RTMPS
 
 on:
   workflow_dispatch:
@@ -70,24 +70,42 @@ jobs:
               }
             });
 
-            // Target URL
             await page.goto('https://footfytv.pro/watch/5383', {
               waitUntil: 'networkidle2'
             });
 
-            console.log("Waiting for player and removing unwanted elements...");
-            await new Promise(r => setTimeout(r, 10000));
+            console.log("Waiting for page elements...");
+            await new Promise(r => setTimeout(r, 6000));
 
-            // Remove overlays and force play main video
+            // Click PTV Sports server button and play video
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
+              // Remove footylive overlays if any
               document.querySelectorAll('div, img, span').forEach(el => {
                 if (el.innerText && el.innerText.toLowerCase().includes('footylive')) {
                   el.remove();
                 }
               });
 
+              // Find and click the PTV Sports server/button
+              const buttons = Array.from(document.querySelectorAll('a, button, div, span, li'));
+              const ptvButton = buttons.find(el => el.innerText && el.innerText.toLowerCase().includes('ptv sports'));
+              
+              if (ptvButton) {
+                console.log("PTV Sports button found, clicking...");
+                ptvButton.click();
+              } else {
+                console.log("PTV Sports button not found by text, trying general server selector...");
+                // Fallback: click any server button if specific text is structured differently
+                const serverBtn = document.querySelector('.server-item, [class*="server"], [id*="server"]');
+                if (serverBtn) serverBtn.click();
+              }
+
+              // Wait for the player to switch and load PTV stream
+              await new Promise(resolve => setTimeout(resolve, 5000));
+
+              // Find the main video element and play
               const videos = document.querySelectorAll('video');
               let mainVideo = videos[0];
               
@@ -113,7 +131,8 @@ jobs:
                 }
               }
 
-              const playButton = document.querySelector('.jw-icon-playback, .vjs-big-play-button, .play-button, button, div[class*="play"]');
+              // Click play icons just in case
+              const playButton = document.querySelector('.jw-icon-playback, .vjs-big-play-button, .play-button, button[class*="play"]');
               if (playButton) {
                 playButton.click();
               }
@@ -123,9 +142,9 @@ jobs:
 
           node launch.js > /dev/null 2>&1 &
           
-          sleep 20
+          sleep 25
 
-                              # FFmpeg streaming with separated/fixed RTMPS URL and Key for IVS/Kick
+          # FFmpeg streaming with Full HD resolution to RTMPS endpoint
           while true; do
             echo "Starting/Restarting HD FFmpeg stream..."
             ffmpeg -y \
@@ -140,3 +159,4 @@ jobs:
             echo "Stream disconnected. Reconnecting in 3 seconds..."
             sleep 3
           done
+          
