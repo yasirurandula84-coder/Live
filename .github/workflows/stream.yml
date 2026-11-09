@@ -125,19 +125,20 @@ jobs:
           
           sleep 20
 
-          # FFmpeg streaming with Full HD resolution to RTMPS endpoint
+                    # FFmpeg streaming with proper RTMPS parameters for Kick/IVS
           while true; do
-            echo "Starting/Restarting HD FFmpeg stream to RTMPS..."
+            echo "Starting/Restarting HD FFmpeg stream..."
             ffmpeg -y \
               -f x11grab -framerate 30 -video_size 1920x1080 -i :99.0 \
               -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
               -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 3000k -maxrate 4000k -bufsize 8000k \
               -c:a aac -b:a 192k -ar 44100 -ac 2 \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-              -flvflags no_duration_filesize \
+              -flvflags no_duration_filesize+no_metadata \
               -f flv "rtmps://fa723fc1b171.global-contribute.live-video.net/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV" || true
             
             echo "Stream disconnected. Reconnecting in 3 seconds..."
             sleep 3
           done
-          
+
+            
