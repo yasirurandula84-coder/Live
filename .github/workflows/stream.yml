@@ -34,6 +34,11 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=virtual_sink || true
+          pactl set-default-sink virtual_sink || true
+          pactl set-default-source virtual_sink.monitor || true
+
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
@@ -111,11 +116,11 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 25
 
-          # Clean FFmpeg Pipeline with Kick/IVS RTMPS Destination (No filters, No audio effects)
+          # Clean FFmpeg Pipeline using Virtual Sink Audio & Kick RTMPS Destination
           cat << 'FFEOF' > run_stream.sh
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
-            -f alsa -i default \
+            -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
             -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 2000k -maxrate 2500k -bufsize 5000k \
             -max_muxing_queue_size 2048 \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
