@@ -1,3 +1,5 @@
+Na mama denne GitHub code ekakin live Eka ethakota puluwan da
+
 name: Stream PTV Sports to Kick (Working Structure)
 
 on:
@@ -120,19 +122,13 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 18
 
-                    # Multi-bitrate FFmpeg Streaming to Kick
+          # Clean FFmpeg Streaming with Virtual Sink and Kick/IVS RTMPS endpoint
           ffmpeg -y \
             -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
             -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-            -filter_complex \
-            "[0:v]split=3[v1][v2][v3]; \
-             [v1]scale=1280:720[v720]; \
-             [v2]scale=854:480[v480]; \
-             [v3]scale=640:360[v360]" \
-            -map "[v720]" -c:v:0 libx264 -b:v:0 2500k -maxrate:v:0 3000k -bufsize:v:0 6000k -g 60 -keyint_min 60 -preset veryfast -tune zerolatency -pix_fmt yuv420p \
-            -map "[v480]" -c:v:1 libx264 -b:v:1 1200k -maxrate:v:1 1500k -bufsize:v:1 3000k -g 60 -keyint_min 60 -preset veryfast -tune zerolatency -pix_fmt yuv420p \
-            -map "[v360]" -c:v:2 libx264 -b:v:2 600k  -maxrate:v:2 800k  -bufsize:v:2 1600k -g 60 -keyint_min 60 -preset veryfast -tune zerolatency -pix_fmt yuv420p \
-            -map 1:a -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 2500k -maxrate 3000k -bufsize 6000k \
+            -max_muxing_queue_size 2048 \
+            -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -flvflags no_duration_filesize+no_metadata \
             -f flv "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV"
