@@ -1,4 +1,4 @@
-name: Stream PTV Sports from Footfytv to RTMPS
+name: Stream Match to Kick (Clean HD)
 
 on:
   workflow_dispatch:
@@ -27,22 +27,15 @@ jobs:
             curl \
             wget
             
-          npm install puppeteer-extra puppeteer-extra-plugin-stealth
+          npm install puppeteer
 
       - name: Start Virtual Display & Stream
         run: |
-          Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
+          Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
-          pulseaudio --start --exit-idle-time=-1 || true
-          pactl load-module module-null-sink sink_name=virtual_sink || true
-          pactl set-default-sink virtual_sink || true
-          pactl set-default-source virtual_sink.monitor || true
-
           cat << 'EOF' > launch.js
-          const puppeteer = require('puppeteer-extra');
-          const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-          puppeteer.use(StealthPlugin());
+          const puppeteer = require('puppeteer');
 
           (async () => {
             const browser = await puppeteer.launch({
@@ -51,7 +44,7 @@ jobs:
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-gpu',
-                '--window-size=1920,1080',
+                '--window-size=1280,720',
                 '--autoplay-policy=no-user-gesture-required',
                 '--start-fullscreen',
                 '--block-new-web-contents'
@@ -59,7 +52,7 @@ jobs:
             });
 
             const page = await browser.newPage();
-            await page.setViewport({ width: 1920, height: 1080 });
+            await page.setViewport({ width: 1280, height: 720 });
 
             browser.on('targetcreated', async (target) => {
               if (target.type() === 'page') {
@@ -70,42 +63,19 @@ jobs:
               }
             });
 
+            console.log("Navigating to site...");
             await page.goto('https://footfytv.pro/watch/5383', {
-              waitUntil: 'networkidle2'
+              waitUntil: 'networkidle2',
+              timeout: 60000
             });
 
-            console.log("Waiting for page elements...");
-            await new Promise(r => setTimeout(r, 6000));
+            console.log("Waiting for player to load automatically...");
+            await new Promise(r => setTimeout(r, 10000));
 
-            // Click PTV Sports server button and play video
+            // Auto-detect video, force play, and fit fullscreen without clicking buttons
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              // Remove footylive overlays if any
-              document.querySelectorAll('div, img, span').forEach(el => {
-                if (el.innerText && el.innerText.toLowerCase().includes('footylive')) {
-                  el.remove();
-                }
-              });
-
-              // Find and click the PTV Sports server/button
-              const buttons = Array.from(document.querySelectorAll('a, button, div, span, li'));
-              const ptvButton = buttons.find(el => el.innerText && el.innerText.toLowerCase().includes('ptv sports'));
-              
-              if (ptvButton) {
-                console.log("PTV Sports button found, clicking...");
-                ptvButton.click();
-              } else {
-                console.log("PTV Sports button not found by text, trying general server selector...");
-                // Fallback: click any server button if specific text is structured differently
-                const serverBtn = document.querySelector('.server-item, [class*="server"], [id*="server"]');
-                if (serverBtn) serverBtn.click();
-              }
-
-              // Wait for the player to switch and load PTV stream
-              await new Promise(resolve => setTimeout(resolve, 5000));
-
-              // Find the main video element and play
               const videos = document.querySelectorAll('video');
               let mainVideo = videos[0];
               
@@ -123,40 +93,41 @@ jobs:
 
               if (mainVideo) {
                 mainVideo.muted = false;
-                mainVideo.volume = 1.0;
-                mainVideo.play().catch(e => console.log("Play error:", e));
+                mainVideo.style.position = 'fixed';
+                mainVideo.style.top = '0';
+                mainVideo.style.left = '0';
+                mainVideo.style.width = '1280px';
+                mainVideo.style.height = '720px';
+                mainVideo.style.zIndex = '999999';
+                mainVideo.style.objectFit = 'cover';
                 
+                mainVideo.play().catch(e => {});
+
                 if (mainVideo.requestFullscreen) {
                   mainVideo.requestFullscreen().catch(() => {});
                 }
               }
-
-              // Click play icons just in case
-              const playButton = document.querySelector('.jw-icon-playback, .vjs-big-play-button, .play-button, button[class*="play"]');
-              if (playButton) {
-                playButton.click();
-              }
             });
+
+            await new Promise(() => {});
           })();
           EOF
 
           node launch.js > /dev/null 2>&1 &
-          
           sleep 25
 
-          # FFmpeg streaming with Full HD resolution to RTMPS endpoint
-          while true; do
-            echo "Starting/Restarting HD FFmpeg stream..."
-            ffmpeg -y \
-              -f x11grab -framerate 30 -video_size 1920x1080 -i :99.0 \
-              -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-              -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 3000k -maxrate 4000k -bufsize 8000k \
-              -c:a aac -b:a 192k -ar 44100 -ac 2 \
-              -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-              -flvflags no_duration_filesize+no_metadata \
-              -f flv "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV" || true
-            
-            echo "Stream disconnected. Reconnecting in 3 seconds..."
-            sleep 3
-          done
+          # Clean FFmpeg Pipeline with Kick/IVS RTMP parameters (No filters, No audio effects)
+          cat << 'FFEOF' > run_stream.sh
+          ffmpeg -y \
+            -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
+            -f alsa -i default \
+            -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 2000k -maxrate 2500k -bufsize 5000k \
+            -max_muxing_queue_size 2048 \
+            -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
+            -flvflags no_duration_filesize+no_metadata \
+            -f flv "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV"
+          FFEOF
+
+          bash run_stream.sh
           
