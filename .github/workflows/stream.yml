@@ -1,4 +1,4 @@
-name: Stream Sphublive DASH to Telegram
+name: Stream PTV Sports to Kick (Working Structure)
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
             curl \
             wget
             
-          npm install puppeteer-extra puppeteer-extra-plugin-stealth
+          npm install puppeteer
 
       - name: Start Virtual Display & Stream
         run: |
@@ -40,9 +40,7 @@ jobs:
           pactl set-default-source virtual_sink.monitor || true
 
           cat << 'EOF' > launch.js
-          const puppeteer = require('puppeteer-extra');
-          const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-          puppeteer.use(StealthPlugin());
+          const puppeteer = require('puppeteer');
 
           (async () => {
             const browser = await puppeteer.launch({
@@ -61,6 +59,9 @@ jobs:
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
 
+            // Set a real desktop Chrome User-Agent
+            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+
             browser.on('targetcreated', async (target) => {
               if (target.type() === 'page') {
                 const newPage = await target.page();
@@ -70,24 +71,35 @@ jobs:
               }
             });
 
-            // Target DASH/MPD Stream Player URL
-            await page.goto('https://tv.sphublive.com/dash/mpd?manifest=https://ott-edge-mtdc04.nettv.com.np/npl/live_match3/index.mpd&keyid=b4d7fc89103597185058cc4c81a1800d&key=17062472ba2a3f1db709d3bb7761c936', {
+            await page.goto('https://footfytv.pro/watch/5259', {
               waitUntil: 'networkidle2'
             });
 
-            // Wait for player container to load
             await new Promise(r => setTimeout(r, 6000));
 
-            // Force play, unmute, and make video fullscreen
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              const playButton = document.querySelector('video, .vjs-big-play-button, .play-button, button, div[class*="play"]');
-              if (playButton) {
-                playButton.click();
+              const buttons = Array.from(document.querySelectorAll('button, a, div.server-item, span, li'));
+              const ptvBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('premier sports'));
+              
+              if (ptvBtn) {
+                ptvBtn.click();
               }
 
-              await new Promise(resolve => setTimeout(resolve, 3000));
+              await new Promise(resolve => setTimeout(resolve, 4000));
+
+              // Monitor video playback continuously to prevent freezes or pauses
+              setInterval(() => {
+                const video = document.querySelector('video');
+                if (video) {
+                  if (video.paused) {
+                    video.play().catch(() => {});
+                  }
+                  video.muted = false;
+                  video.volume = 1.0;
+                }
+              }, 1000);
 
               const video = document.querySelector('video');
               if (video) {
@@ -106,21 +118,16 @@ jobs:
           EOF
 
           node launch.js > /dev/null 2>&1 &
-          sleep 20
+          sleep 18
 
-          # FFmpeg streaming inside an Auto-Reconnect Loop for Telegram RTMPS
-          while true; do
-            echo "Starting/Restarting FFmpeg stream to Telegram..."
-            ffmpeg -y \
-              -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
-              -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
-              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1200k -maxrate 1500k -bufsize 3000k \
-              -c:a aac -b:a 128k -ar 44100 -ac 2 \
-              -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-              -flvflags no_duration_filesize \
-              -f flv "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV" || true
+          # Clean FFmpeg Streaming with Virtual Sink and Kick/IVS RTMPS endpoint
+          ffmpeg -y \
+            -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
+            -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
+            -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 2500k -maxrate 3000k -bufsize 6000k \
+            -max_muxing_queue_size 2048 \
+            -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
+            -flvflags no_duration_filesize+no_metadata \
+            -f flv "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV"
             
-            echo "Stream disconnected. Reconnecting in 3 seconds..."
-            sleep 3
-          done
-          
