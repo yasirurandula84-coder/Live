@@ -73,7 +73,7 @@ jobs:
             });
 
             console.log("Navigating to Yonotv link...");
-            await page.goto('https://yonotv.pages.dev/page?src=https://yonotv.pages.dev/LINK?id=IND', {
+            await page.goto('https://tamashaweb.com/live-tv?channel=acc-mens-u19-asia-cup-2026', {
               waitUntil: 'domcontentloaded',
               timeout: 60000
             });
