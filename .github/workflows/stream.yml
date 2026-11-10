@@ -121,15 +121,13 @@ jobs:
           node launch.js > /dev/null 2>&1 &
           sleep 20
 
-                              # Fully Synchronized FFmpeg Streaming Pipeline for Telegram RTMPS
+                                 # Clean FFmpeg Streaming with Virtual Sink and Kick/IVS RTMPS endpoint
           ffmpeg -y \
-            -fflags +genpts \
-            -thread_queue_size 2048 -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
-            -thread_queue_size 2048 -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
+            -f x11grab -framerate 30 -video_size 1280x720 -i :99.0 \
+            -f pulse -ar 44100 -ac 2 -i virtual_sink.monitor \
             -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 60 -keyint_min 60 -b:v 2500k -maxrate 3000k -bufsize 6000k \
-            -fps_mode cfr \
-            -max_muxing_queue_size 4096 \
-            -c:a aac -b:a 128k -ar 44100 -ac 2 -async 1 \
+            -max_muxing_queue_size 2048 \
+            -c:a aac -b:a 128k -ar 44100 -ac 2 \
             -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -flvflags no_duration_filesize+no_metadata \
-            -f flv "rtmps://dc4-1.rtmp.t.me/s/4363232898:B2Az5dt8l-5vdB9h-B42Gw"
+            -f flv "rtmps://fa723fc1b171.global-contribute.live-video.net:443/app/sk_us-west-2_5pe0dOCLoCrz_FnAVd9FoD0vc5x8CjJ552JPX57agTV"
