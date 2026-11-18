@@ -1,4 +1,4 @@
-name: Stream Match to Kick (Anti-BlackScreen Fixed)
+name: Stream Match to Kick (Direct Play)
 
 on:
   workflow_dispatch:
@@ -73,33 +73,23 @@ jobs:
               }
             });
 
-            console.log("Navigating to site...");
-            await page.goto('https://footfytv.my/match.php?id=5480', {
+            console.log("Navigating directly to site...");
+            await page.goto('https://footfytv.my/match.php?id=5480&stream=2', {
               waitUntil: 'networkidle2',
               timeout: 60000
             });
 
-            console.log("Waiting for player to load...");
-            await new Promise(r => setTimeout(r, 10000));
+            console.log("Waiting for player to render...");
+            await new Promise(r => setTimeout(r, 8000));
 
+            // Direct Video Auto-Recovery & Fullscreen Loop (No extra clicks needed)
             await page.evaluate(async () => {
               window.open = function() { return null; };
 
-              const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
-              const targetBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('fancode'));
-              
-              if (targetBtn) {
-                targetBtn.click();
-                console.log("Clicked button successfully");
-              }
-
-              await new Promise(resolve => setTimeout(resolve, 5000));
-
-              // Advanced Auto-Recovery & Deep Search Loop for Videos and Iframes (Fixes Black Screen / Freeze)
               setInterval(() => {
                 let videos = Array.from(document.querySelectorAll('video'));
                 
-                // Also search inside iframes if main video element gets destroyed or turns black
+                // Search inside iframes if video is embedded
                 document.querySelectorAll('iframe').forEach(iframe => {
                   try {
                     const iframeVideos = iframe.contentDocument.querySelectorAll('video');
@@ -115,7 +105,7 @@ jobs:
                     video.muted = false;
                     video.volume = 1.0;
 
-                    // Force style persistence to prevent black screen layout drops
+                    // Force 720p layout positioning to fill virtual display
                     video.style.position = 'fixed';
                     video.style.top = '0';
                     video.style.left = '0';
@@ -128,7 +118,7 @@ jobs:
               }, 1000);
             });
 
-            await new Promise(() => {});
+            await page.waitForTimeout(99999999);
           })();
           EOF
 
