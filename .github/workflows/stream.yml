@@ -69,7 +69,7 @@ jobs:
             });
 
             console.log("Navigating to site...");
-            await page.goto('https://footfytv.my/match.php?id=5383', {
+            await page.goto('https://footfytv.my/match.php?id=5480', {
               waitUntil: 'networkidle2',
               timeout: 60000
             });
@@ -81,7 +81,7 @@ jobs:
               window.open = function() { return null; };
 
               const elements = Array.from(document.querySelectorAll('button, a, div, span, li'));
-              const targetBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('ptv sports'));
+              const targetBtn = elements.find(el => el.textContent && el.textContent.toLowerCase().includes('fancode'));
               
               if (targetBtn) {
                 targetBtn.click();
