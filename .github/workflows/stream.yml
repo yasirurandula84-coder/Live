@@ -71,7 +71,7 @@ jobs:
               }
             });
 
-            await page.goto('https://footfytv.my/match.php?id=5480&stream=2', {
+            await page.goto('https://footfytv.my/match.php?id=5480', {
               waitUntil: 'networkidle2'
             });
 
