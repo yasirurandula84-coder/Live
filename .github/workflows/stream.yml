@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Larger Logo + Right Shift)
+name: Stream Match to Facebook (Half B&W Scoreboard + Logo)
 
 on:
   workflow_dispatch:
@@ -186,9 +186,9 @@ jobs:
               -loop 1 -i logo.jpg \
               -filter_complex "\
               color=c=black:s=1280x720:r=25[bg];\
-              [0:v]scale=1280:720,fps=25,split=2[vorig][vblur];\
-              [vblur]crop=600:85:40:615,boxblur=18:4[sb_left];\
-              [vorig][sb_left]overlay=x=40:y=615:shortest=1[sb_done];\
+              [0:v]scale=1280:720,fps=25,split=2[vorig][vbw];\
+              [vbw]crop=600:85:40:615,hue=s=0[sb_bw];\
+              [vorig][sb_bw]overlay=x=40:y=615:shortest=1[sb_done];\
               [sb_done]split=4[q0][q1][q2][q3];\
               [q0]crop=640:360:0:0,hue=h=-35:s=1.22,colorbalance=rs=0.14:gs=-0.08:bs=0.06:rm=0.10:gm=-0.06:bm=0.04[tl];\
               [q1]crop=640:360:640:0,hue=h=55:s=1.22,colorbalance=rs=-0.10:gs=0.15:bs=-0.05:rm=-0.08:gm=0.10:bm=-0.04[tr];\
