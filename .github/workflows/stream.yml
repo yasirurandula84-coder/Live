@@ -42,7 +42,7 @@ jobs:
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
-          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-0-australia-vs-england&title=Australia%20Vs%20England';
+          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-3-bangladesh-a-vs-pakistan-a&title=Bangladesh%20A%20Vs%20Pakistan%20A';
 
           (async () => {
             const browser = await puppeteer.launch({
@@ -81,7 +81,7 @@ jobs:
               window.open = function () { return null; };
             });
 
-            console.log('Navigating to Australia vs England stream...');
+            console.log('Navigating to Bangladesh A vs Pakistan A stream...');
             try {
               await page.goto(TARGET_URL, {
                 waitUntil: 'domcontentloaded',
@@ -94,7 +94,7 @@ jobs:
 
             await new Promise((r) => setTimeout(r, 12000));
 
-            async function clickFancodeInContext(ctx, idx) {
+            async function clickStrazplayInContext(ctx, idx) {
               return ctx.evaluate((frameIdx) => {
                 window.open = function () { return null; };
                 const candidates = Array.from(
@@ -116,7 +116,14 @@ jobs:
                     el.getAttribute('role') === 'button' ||
                     text.length <= 45;
 
-                  if (isSmallOrButton && (text.includes('fancode') || attrs.includes('fancode'))) {
+                  const matchesStraz =
+                    text.includes('strazplay') ||
+                    text.includes('straz play') ||
+                    attrs.includes('strazplay') ||
+                    attrs.includes('straz-play') ||
+                    /\bstraz\b/.test(text);
+
+                  if (isSmallOrButton && matchesStraz) {
                     el.scrollIntoView({ block: 'center', inline: 'center' });
                     el.click();
                     return { clicked: true, frameIdx, matchedText: text || attrs.slice(0, 50) };
@@ -130,7 +137,7 @@ jobs:
               return ctx.evaluate(async (frameIdx) => {
                 window.open = function () { return null; };
 
-                const styleId = 'force-fancode-fullscreen-style';
+                const styleId = 'force-strazplay-fullscreen-style';
                 if (!document.getElementById(styleId)) {
                   const style = document.createElement('style');
                   style.id = styleId;
@@ -195,11 +202,11 @@ jobs:
               }, idx).catch((e) => ({ frameIdx: idx, err: e.message }));
             }
 
-            let clickedFancode = false;
+            let clickedStrazplay = false;
             for (let i = 0; i < page.frames().length; i++) {
-              const res = await clickFancodeInContext(page.frames()[i], i);
-              console.log('[FANCODE CLICK CHECK]:', JSON.stringify(res));
-              if (res.clicked) clickedFancode = true;
+              const res = await clickStrazplayInContext(page.frames()[i], i);
+              console.log('[STRAZPLAY CLICK CHECK]:', JSON.stringify(res));
+              if (res.clicked) clickedStrazplay = true;
             }
 
             await new Promise((r) => setTimeout(r, 6000));
@@ -207,11 +214,11 @@ jobs:
             const syncPlayer = async () => {
               const frames = page.frames();
               for (let i = 0; i < frames.length; i++) {
-                if (!clickedFancode) {
-                  const clickRes = await clickFancodeInContext(frames[i], i);
+                if (!clickedStrazplay) {
+                  const clickRes = await clickStrazplayInContext(frames[i], i);
                   if (clickRes.clicked) {
-                    clickedFancode = true;
-                    console.log('[FANCODE LATE CLICK]:', JSON.stringify(clickRes));
+                    clickedStrazplay = true;
+                    console.log('[STRAZPLAY LATE CLICK]:', JSON.stringify(clickRes));
                   }
                 }
                 const info = await applyFullscreenAndPlayInContext(frames[i], i);
