@@ -34,7 +34,6 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
-          # Start PulseAudio and create a virtual sink for browser/FFmpeg audio
           pulseaudio --start --exit-idle-time=-1 --log-target=syslog || true
           pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description="Virtual_Speaker" || true
           pactl set-default-sink virtual_speaker || true
@@ -62,6 +61,13 @@ jobs:
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
 
+            page.on('console', (msg) => {
+              console.log('[PAGE CONSOLE]:', msg.text());
+            });
+            page.on('pageerror', (err) => {
+              console.log('[PAGE ERROR]:', err.message);
+            });
+
             browser.on('targetcreated', async (target) => {
               if (target.type() === 'page') {
                 const newPage = await target.page();
@@ -76,16 +82,20 @@ jobs:
             });
 
             console.log('Navigating to StreamX...');
-            await page.goto(TARGET_URL, {
-              waitUntil: 'networkidle2',
-              timeout: 60000
-            });
+            try {
+              await page.goto(TARGET_URL, {
+                waitUntil: 'domcontentloaded',
+                timeout: 60000
+              });
+              console.log('DOM loaded. Current URL:', page.url());
+            } catch (e) {
+              console.log('Navigation warning/error:', e.message);
+            }
 
-            console.log('Waiting for player and iframes to load...');
-            await new Promise((r) => setTimeout(r, 12000));
+            await new Promise((r) => setTimeout(r, 15000));
 
-            async function expandAndPlayInContext(ctx) {
-              return ctx.evaluate(async () => {
+            async function expandAndPlayInContext(ctx, idx) {
+              return ctx.evaluate(async (frameIdx) => {
                 window.open = function () { return null; };
 
                 const styleId = 'force-fullscreen-stream-style';
@@ -114,8 +124,12 @@ jobs:
                       object-fit: contain !important;
                     }
                   `;
-                  document.head.appendChild(style);
+                  (document.head || document.documentElement).appendChild(style);
                 }
+
+                // Center click to dismiss/start player if needed
+                const videos = Array.from(document.querySelectorAll('video'));
+                const iframes = Array.from(document.querySelectorAll('iframe'));
 
                 const playCandidates = Array.from(
                   document.querySelectorAll('button, [role="button"], .play, .vjs-big-play-button, .jw-icon-display')
@@ -127,7 +141,6 @@ jobs:
                   }
                 }
 
-                const videos = Array.from(document.querySelectorAll('video'));
                 for (const video of videos) {
                   video.muted = false;
                   video.volume = 1.0;
@@ -144,29 +157,36 @@ jobs:
                   } catch (e) {}
                 }
 
-                return videos.length;
-              }).catch(() => 0);
+                return {
+                  frameIdx,
+                  videos: videos.length,
+                  iframes: iframes.length,
+                  readyStates: videos.map((v) => v.readyState),
+                  paused: videos.map((v) => v.paused)
+                };
+              }, idx).catch((e) => ({ frameIdx: idx, err: e.message }));
             }
 
-            let totalVideos = 0;
-            for (const frame of page.frames()) {
-              const count = await expandAndPlayInContext(frame);
-              totalVideos += count;
-            }
-            console.log(`Found and styled ${totalVideos} video element(s).`);
-
-            setInterval(async () => {
-              for (const frame of page.frames()) {
-                await expandAndPlayInContext(frame);
+            const inspectAllFrames = async () => {
+              const frames = page.frames();
+              for (let i = 0; i < frames.length; i++) {
+                const info = await expandAndPlayInContext(frames[i], i);
+                console.log(`[FRAME ${i} -> ${frames[i].url()}]:`, JSON.stringify(info));
               }
-            }, 5000);
+            };
+
+            await inspectAllFrames();
+            setInterval(inspectAllFrames, 6000);
 
             await new Promise(() => {});
           })();
           EOF
 
-          node launch.js > /dev/null 2>&1 &
-          sleep 25
+          node launch.js > launch.log 2>&1 &
+          sleep 30
+          echo "=== LAUNCH.JS LOGS ==="
+          cat launch.log || true
+          echo "======================"
 
           cat << 'FFEOF' > run_stream.sh
           ffmpeg -y \
@@ -204,3 +224,4 @@ jobs:
           FFEOF
 
           bash run_stream.sh
+          
