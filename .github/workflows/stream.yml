@@ -42,7 +42,7 @@ jobs:
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
-          const TARGET_URL = 'https://www.streamx.website/match?tv=1&id=tv-1&title=Australia+vs+England';
+          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-0-australia-vs-england&title=Australia%20Vs%20England';
 
           (async () => {
             const browser = await puppeteer.launch({
@@ -81,7 +81,7 @@ jobs:
               window.open = function () { return null; };
             });
 
-            console.log('Navigating to StreamX...');
+            console.log('Navigating to Australia vs England stream...');
             try {
               await page.goto(TARGET_URL, {
                 waitUntil: 'domcontentloaded',
@@ -94,11 +94,50 @@ jobs:
 
             await new Promise((r) => setTimeout(r, 12000));
 
+            async function selectTntSportInContext(ctx, idx) {
+              return ctx.evaluate((frameIdx) => {
+                window.open = function () { return null; };
+                const candidates = Array.from(
+                  document.querySelectorAll('button, a, div, span, li, [role="button"]')
+                );
+                for (const el of candidates) {
+                  const text = (el.innerText || el.textContent || '').trim().toLowerCase().replace(/\s+/g, ' ');
+                  const attrs = [
+                    el.getAttribute('aria-label') || '',
+                    el.getAttribute('title') || '',
+                    el.getAttribute('data-server') || '',
+                    el.getAttribute('data-channel') || '',
+                    typeof el.className === 'string' ? el.className : ''
+                  ].join(' ').toLowerCase();
+
+                  const isSmallOrButton =
+                    el.tagName === 'BUTTON' ||
+                    el.tagName === 'A' ||
+                    el.getAttribute('role') === 'button' ||
+                    text.length <= 45;
+
+                  const matchesTnt =
+                    text.includes('tnt sport') ||
+                    text.includes('tnt sports') ||
+                    attrs.includes('tnt sport') ||
+                    attrs.includes('tnt-sport') ||
+                    /\btnt\b/.test(text);
+
+                  if (isSmallOrButton && matchesTnt) {
+                    el.scrollIntoView({ block: 'center', inline: 'center' });
+                    el.click();
+                    return { clicked: true, frameIdx, matchedText: text || attrs.slice(0, 50) };
+                  }
+                }
+                return { clicked: false, frameIdx };
+              }, idx).catch((e) => ({ clicked: false, frameIdx: idx, err: e.message }));
+            }
+
             async function applyFullscreenAndPlayInContext(ctx, idx) {
               return ctx.evaluate(async (frameIdx) => {
                 window.open = function () { return null; };
 
-                const styleId = 'force-streamx-fullscreen-style';
+                const styleId = 'force-tnt-fullscreen-style';
                 if (!document.getElementById(styleId)) {
                   const style = document.createElement('style');
                   style.id = styleId;
@@ -127,6 +166,16 @@ jobs:
                   (document.head || document.documentElement).appendChild(style);
                 }
 
+                const playCandidates = Array.from(
+                  document.querySelectorAll('button, [role="button"], .play, .vjs-big-play-button, .jw-icon-display')
+                );
+                for (const el of playCandidates) {
+                  const txt = (el.innerText || el.ariaLabel || el.className || '').toLowerCase();
+                  if (txt.includes('play') || el.className.toString().toLowerCase().includes('play')) {
+                    try { el.click(); } catch (e) {}
+                  }
+                }
+
                 const videos = Array.from(document.querySelectorAll('video'));
                 for (const video of videos) {
                   video.muted = false;
@@ -152,9 +201,25 @@ jobs:
               }, idx).catch((e) => ({ frameIdx: idx, err: e.message }));
             }
 
+            let selectedTnt = false;
+            for (let i = 0; i < page.frames().length; i++) {
+              const res = await selectTntSportInContext(page.frames()[i], i);
+              console.log('[TNT SELECT CHECK]:', JSON.stringify(res));
+              if (res.clicked) selectedTnt = true;
+            }
+
+            await new Promise((r) => setTimeout(r, 6000));
+
             const syncPlayer = async () => {
               const frames = page.frames();
               for (let i = 0; i < frames.length; i++) {
+                if (!selectedTnt) {
+                  const clickRes = await selectTntSportInContext(frames[i], i);
+                  if (clickRes.clicked) {
+                    selectedTnt = true;
+                    console.log('[TNT LATE SELECT]:', JSON.stringify(clickRes));
+                  }
+                }
                 const info = await applyFullscreenAndPlayInContext(frames[i], i);
                 console.log('[PLAYER SYNC]:', JSON.stringify(info));
               }
