@@ -45,7 +45,7 @@ jobs:
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
-          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-3-bangladesh-a-vs-pakistan-a&title=Bangladesh%20A%20Vs%20Pakistan%20A';
+          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-6-pakistan-a-vs-bangladesh-a&title=Pakistan%20A%20Vs%20Bangladesh%20A';
 
           (async () => {
             const browser = await puppeteer.launch({
