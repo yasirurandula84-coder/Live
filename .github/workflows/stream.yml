@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Logo Overlay + Heavy Obfuscation)
+name: Stream Match to Facebook (Larger Logo + Right Shift)
 
 on:
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
           pactl set-default-source virtual_speaker.monitor || true
 
           curl -fsSL "https://raw.githubusercontent.com/yasirurandula84-coder/Live/refs/heads/main/1793782216727.jpg" -o logo.jpg || \
-            ffmpeg -y -f lavfi -i color=c=black:s=400x76:d=1 -frames:v 1 logo.jpg
+            ffmpeg -y -f lavfi -i color=c=black:s=460x92:d=1 -frames:v 1 logo.jpg
 
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
@@ -206,8 +206,8 @@ jobs:
               drawbox=x=0:y=0:w=6:h=720:color=white@0.45:t=fill,\
               drawbox=x=1274:y=0:w=6:h=720:color=white@0.45:t=fill,\
               drawbox=x='if(lt(mod(t*360,4000),1280),mod(t*360,4000),if(lt(mod(t*360,4000),2000),1274,if(lt(mod(t*360,4000),3280),1280-(mod(t*360,4000)-2000),0)))':y='if(lt(mod(t*360,4000),1280),0,if(lt(mod(t*360,4000),2000),(mod(t*360,4000)-1280),if(lt(mod(t*360,4000),3280),714,720-(mod(t*360,4000)-3280))))':w='if(lt(mod(t*360,4000),2000),90,6)':h='if(lt(mod(t*360,4000),2000),6,90)':color=cyan@0.95:t=fill[v_base];\
-              [2:v]scale=400:76:force_original_aspect_ratio=decrease,pad=400:76:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
-              [v_base][logo_scaled]overlay=x=870:y=28:shortest=1[v];\
+              [2:v]scale=460:92:force_original_aspect_ratio=decrease,pad=460:92:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
+              [v_base][logo_scaled]overlay=x=810:y=22:shortest=1[v];\
               anoisesrc=color=white:amplitude=0.025:sample_rate=44100[bgnoise];\
               [1:a]highpass=f=80,lowpass=f=2100,bass=g=14:f=100:w=0.9,vibrato=f=4.5:d=0.45,aecho=in_gain=0.9:out_gain=0.95:delays=95|165|240:decays=0.65|0.5|0.35,asetrate=44100*0.72,atempo=1.3888,aresample=44100:async=1:first_pts=0[main_a];\
               [main_a][bgnoise]amix=inputs=2:weights='1 0.22':duration=shortest,asetpts=PTS-STARTPTS[a]" \
