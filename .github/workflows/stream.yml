@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Logo Overlay + Heavy Obfuscation)
+name: Stream Match to Facebook (Willow Alt Auto-Click + Fullscreen)
 
 on:
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
           pactl set-default-source virtual_speaker.monitor || true
 
           curl -fsSL "https://raw.githubusercontent.com/yasirurandula84-coder/Live/refs/heads/main/1793782216727.jpg" -o logo.jpg || \
-            ffmpeg -y -f lavfi -i color=c=black:s=460x92:d=1 -frames:v 1 logo.jpg
+            ffmpeg -y -f lavfi -i color=c=black:s=500x100:d=1 -frames:v 1 logo.jpg
 
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
@@ -84,7 +84,7 @@ jobs:
               window.open = function () { return null; };
             });
 
-            console.log('Navigating to stream page...');
+            console.log('Navigating to Pakistan A vs Bangladesh A stream...');
             try {
               await page.goto(TARGET_URL, {
                 waitUntil: 'domcontentloaded',
@@ -95,74 +95,158 @@ jobs:
               console.log('Navigation error:', e.message);
             }
 
-            async function ensureFullscreenAutoPlayInFrames() {
-              const frames = page.frames();
-              for (let i = 0; i < frames.length; i++) {
-                const info = await frames[i].evaluate(async (frameIdx) => {
-                  window.open = function () { return null; };
+            await new Promise((r) => setTimeout(r, 12000));
 
-                  const styleId = 'force-auto-fullscreen-style';
-                  if (!document.getElementById(styleId)) {
-                    const style = document.createElement('style');
-                    style.id = styleId;
-                    style.textContent = `
-                      html, body {
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        width: 1280px !important;
-                        height: 720px !important;
-                        overflow: hidden !important;
-                        background: #000 !important;
-                      }
-                      iframe, video {
-                        position: fixed !important;
-                        top: 0 !important;
-                        left: 0 !important;
-                        width: 1280px !important;
-                        height: 720px !important;
-                        max-width: 1280px !important;
-                        max-height: 720px !important;
-                        z-index: 2147483647 !important;
-                        background: #000 !important;
-                        object-fit: contain !important;
-                      }
-                    `;
-                    (document.head || document.documentElement).appendChild(style);
+            async function clickWillowAltInContext(ctx, idx) {
+              return ctx.evaluate((frameIdx) => {
+                window.open = function () { return null; };
+                const candidates = Array.from(
+                  document.querySelectorAll('button, a, div, span, li, [role="button"]')
+                );
+
+                const scored = [];
+                for (const el of candidates) {
+                  const text = (el.innerText || el.textContent || '')
+                    .trim()
+                    .toLowerCase()
+                    .replace(/\s+/g, ' ');
+                  const attrs = [
+                    el.getAttribute('aria-label') || '',
+                    el.getAttribute('title') || '',
+                    el.getAttribute('data-server') || '',
+                    el.getAttribute('data-channel') || '',
+                    typeof el.className === 'string' ? el.className : ''
+                  ]
+                    .join(' ')
+                    .toLowerCase();
+
+                  const isSmallOrButton =
+                    el.tagName === 'BUTTON' ||
+                    el.tagName === 'A' ||
+                    el.getAttribute('role') === 'button' ||
+                    text.length <= 50;
+
+                  const combined = `${text} ${attrs}`;
+                  const hasWillowAlt =
+                    /willow[\s_-]*alt/.test(combined) ||
+                    (combined.includes('willow') && /\balt\b/.test(combined));
+
+                  if (isSmallOrButton && hasWillowAlt) {
+                    scored.push({ el, text, attrs });
                   }
+                }
 
-                  const videos = Array.from(document.querySelectorAll('video'));
-                  for (const v of videos) {
-                    v.muted = false;
-                    v.volume = 1.0;
-                    v.controls = false;
-                    v.style.position = 'fixed';
-                    v.style.top = '0';
-                    v.style.left = '0';
-                    v.style.width = '1280px';
-                    v.style.height = '720px';
-                    v.style.zIndex = '2147483647';
-                    v.style.objectFit = 'contain';
-                    try {
-                      if (v.paused) {
-                        await v.play();
-                      }
-                    } catch (e) {}
-                  }
-
+                if (scored.length > 0) {
+                  scored.sort((a, b) => a.text.length - b.text.length);
+                  const chosen = scored[0];
+                  chosen.el.scrollIntoView({ block: 'center', inline: 'center' });
+                  chosen.el.click();
                   return {
+                    clicked: true,
                     frameIdx,
-                    videos: videos.length,
-                    paused: videos.map((v) => v.paused),
-                    readyStates: videos.map((v) => v.readyState)
+                    matchedText: chosen.text || chosen.attrs.slice(0, 60)
                   };
-                }, i).catch((e) => ({ frameIdx: i, err: e.message }));
-                console.log('[PLAYER SYNC]:', JSON.stringify(info));
-              }
+                }
+
+                return { clicked: false, frameIdx };
+              }, idx).catch((e) => ({ clicked: false, frameIdx: idx, err: e.message }));
             }
 
-            await new Promise((r) => setTimeout(r, 12000));
-            await ensureFullscreenAutoPlayInFrames();
-            setInterval(ensureFullscreenAutoPlayInFrames, 6000);
+            async function applyFullscreenAndPlayInContext(ctx, idx) {
+              return ctx.evaluate(async (frameIdx) => {
+                window.open = function () { return null; };
+
+                const styleId = 'force-willow-alt-fullscreen-style';
+                if (!document.getElementById(styleId)) {
+                  const style = document.createElement('style');
+                  style.id = styleId;
+                  style.textContent = `
+                    html, body {
+                      margin: 0 !important;
+                      padding: 0 !important;
+                      width: 1280px !important;
+                      height: 720px !important;
+                      overflow: hidden !important;
+                      background: #000 !important;
+                    }
+                    iframe, video {
+                      position: fixed !important;
+                      top: 0 !important;
+                      left: 0 !important;
+                      width: 1280px !important;
+                      height: 720px !important;
+                      max-width: 1280px !important;
+                      max-height: 720px !important;
+                      z-index: 2147483647 !important;
+                      background: #000 !important;
+                      object-fit: contain !important;
+                    }
+                  `;
+                  (document.head || document.documentElement).appendChild(style);
+                }
+
+                const playCandidates = Array.from(
+                  document.querySelectorAll('button, [role="button"], .play, .vjs-big-play-button, .jw-icon-display')
+                );
+                for (const el of playCandidates) {
+                  const txt = (el.innerText || el.ariaLabel || el.className || '').toLowerCase();
+                  if (txt.includes('play') || el.className.toString().toLowerCase().includes('play')) {
+                    try { el.click(); } catch (e) {}
+                  }
+                }
+
+                const videos = Array.from(document.querySelectorAll('video'));
+                for (const video of videos) {
+                  video.muted = false;
+                  video.volume = 1.0;
+                  video.controls = false;
+                  video.style.position = 'fixed';
+                  video.style.top = '0';
+                  video.style.left = '0';
+                  video.style.width = '1280px';
+                  video.style.height = '720px';
+                  video.style.zIndex = '2147483647';
+                  video.style.objectFit = 'contain';
+                  try {
+                    await video.play();
+                  } catch (e) {}
+                }
+
+                return {
+                  frameIdx,
+                  videos: videos.length,
+                  paused: videos.map((v) => v.paused),
+                  readyStates: videos.map((v) => v.readyState)
+                };
+              }, idx).catch((e) => ({ frameIdx: idx, err: e.message }));
+            }
+
+            let clickedWillowAlt = false;
+            for (let i = 0; i < page.frames().length; i++) {
+              const res = await clickWillowAltInContext(page.frames()[i], i);
+              console.log('[WILLOW ALT CLICK CHECK]:', JSON.stringify(res));
+              if (res.clicked) clickedWillowAlt = true;
+            }
+
+            await new Promise((r) => setTimeout(r, 6000));
+
+            const syncPlayer = async () => {
+              const frames = page.frames();
+              for (let i = 0; i < frames.length; i++) {
+                if (!clickedWillowAlt) {
+                  const clickRes = await clickWillowAltInContext(frames[i], i);
+                  if (clickRes.clicked) {
+                    clickedWillowAlt = true;
+                    console.log('[WILLOW ALT LATE CLICK]:', JSON.stringify(clickRes));
+                  }
+                }
+                const info = await applyFullscreenAndPlayInContext(frames[i], i);
+                console.log('[PLAYER SYNC]:', JSON.stringify(info));
+              }
+            };
+
+            await syncPlayer();
+            setInterval(syncPlayer, 6000);
 
             await new Promise(() => {});
           })();
@@ -206,8 +290,8 @@ jobs:
               drawbox=x=0:y=0:w=6:h=720:color=white@0.45:t=fill,\
               drawbox=x=1274:y=0:w=6:h=720:color=white@0.45:t=fill,\
               drawbox=x='if(lt(mod(t*360,4000),1280),mod(t*360,4000),if(lt(mod(t*360,4000),2000),1274,if(lt(mod(t*360,4000),3280),1280-(mod(t*360,4000)-2000),0)))':y='if(lt(mod(t*360,4000),1280),0,if(lt(mod(t*360,4000),2000),(mod(t*360,4000)-1280),if(lt(mod(t*360,4000),3280),714,720-(mod(t*360,4000)-3280))))':w='if(lt(mod(t*360,4000),2000),90,6)':h='if(lt(mod(t*360,4000),2000),6,90)':color=cyan@0.95:t=fill[v_base];\
-              [2:v]scale=460:92:force_original_aspect_ratio=decrease,pad=460:92:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
-              [v_base][logo_scaled]overlay=x=835:y=22:shortest=1[v];\
+              [2:v]scale=500:100:force_original_aspect_ratio=decrease,pad=500:100:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
+              [v_base][logo_scaled]overlay=x=865:y=18:shortest=1[v];\
               anoisesrc=color=white:amplitude=0.025:sample_rate=44100[bgnoise];\
               [1:a]highpass=f=80,lowpass=f=2100,bass=g=14:f=100:w=0.9,vibrato=f=4.5:d=0.45,aecho=in_gain=0.9:out_gain=0.95:delays=95|165|240:decays=0.65|0.5|0.35,asetrate=44100*0.72,atempo=1.3888,aresample=44100:async=1:first_pts=0[main_a];\
               [main_a][bgnoise]amix=inputs=2:weights='1 0.22':duration=shortest,asetpts=PTS-STARTPTS[a]" \
