@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Willow Alt Auto-Click + Fullscreen)
+name: Stream Match to Facebook (Slanted Uneven Split + Logo)
 
 on:
   workflow_dispatch:
@@ -84,7 +84,7 @@ jobs:
               window.open = function () { return null; };
             });
 
-            console.log('Navigating to Pakistan A vs Bangladesh A stream...');
+            console.log('Navigating to stream page...');
             try {
               await page.goto(TARGET_URL, {
                 waitUntil: 'domcontentloaded',
@@ -95,158 +95,74 @@ jobs:
               console.log('Navigation error:', e.message);
             }
 
-            await new Promise((r) => setTimeout(r, 12000));
-
-            async function clickWillowAltInContext(ctx, idx) {
-              return ctx.evaluate((frameIdx) => {
-                window.open = function () { return null; };
-                const candidates = Array.from(
-                  document.querySelectorAll('button, a, div, span, li, [role="button"]')
-                );
-
-                const scored = [];
-                for (const el of candidates) {
-                  const text = (el.innerText || el.textContent || '')
-                    .trim()
-                    .toLowerCase()
-                    .replace(/\s+/g, ' ');
-                  const attrs = [
-                    el.getAttribute('aria-label') || '',
-                    el.getAttribute('title') || '',
-                    el.getAttribute('data-server') || '',
-                    el.getAttribute('data-channel') || '',
-                    typeof el.className === 'string' ? el.className : ''
-                  ]
-                    .join(' ')
-                    .toLowerCase();
-
-                  const isSmallOrButton =
-                    el.tagName === 'BUTTON' ||
-                    el.tagName === 'A' ||
-                    el.getAttribute('role') === 'button' ||
-                    text.length <= 50;
-
-                  const combined = `${text} ${attrs}`;
-                  const hasWillowAlt =
-                    /willow[\s_-]*alt/.test(combined) ||
-                    (combined.includes('willow') && /\balt\b/.test(combined));
-
-                  if (isSmallOrButton && hasWillowAlt) {
-                    scored.push({ el, text, attrs });
-                  }
-                }
-
-                if (scored.length > 0) {
-                  scored.sort((a, b) => a.text.length - b.text.length);
-                  const chosen = scored[0];
-                  chosen.el.scrollIntoView({ block: 'center', inline: 'center' });
-                  chosen.el.click();
-                  return {
-                    clicked: true,
-                    frameIdx,
-                    matchedText: chosen.text || chosen.attrs.slice(0, 60)
-                  };
-                }
-
-                return { clicked: false, frameIdx };
-              }, idx).catch((e) => ({ clicked: false, frameIdx: idx, err: e.message }));
-            }
-
-            async function applyFullscreenAndPlayInContext(ctx, idx) {
-              return ctx.evaluate(async (frameIdx) => {
-                window.open = function () { return null; };
-
-                const styleId = 'force-willow-alt-fullscreen-style';
-                if (!document.getElementById(styleId)) {
-                  const style = document.createElement('style');
-                  style.id = styleId;
-                  style.textContent = `
-                    html, body {
-                      margin: 0 !important;
-                      padding: 0 !important;
-                      width: 1280px !important;
-                      height: 720px !important;
-                      overflow: hidden !important;
-                      background: #000 !important;
-                    }
-                    iframe, video {
-                      position: fixed !important;
-                      top: 0 !important;
-                      left: 0 !important;
-                      width: 1280px !important;
-                      height: 720px !important;
-                      max-width: 1280px !important;
-                      max-height: 720px !important;
-                      z-index: 2147483647 !important;
-                      background: #000 !important;
-                      object-fit: contain !important;
-                    }
-                  `;
-                  (document.head || document.documentElement).appendChild(style);
-                }
-
-                const playCandidates = Array.from(
-                  document.querySelectorAll('button, [role="button"], .play, .vjs-big-play-button, .jw-icon-display')
-                );
-                for (const el of playCandidates) {
-                  const txt = (el.innerText || el.ariaLabel || el.className || '').toLowerCase();
-                  if (txt.includes('play') || el.className.toString().toLowerCase().includes('play')) {
-                    try { el.click(); } catch (e) {}
-                  }
-                }
-
-                const videos = Array.from(document.querySelectorAll('video'));
-                for (const video of videos) {
-                  video.muted = false;
-                  video.volume = 1.0;
-                  video.controls = false;
-                  video.style.position = 'fixed';
-                  video.style.top = '0';
-                  video.style.left = '0';
-                  video.style.width = '1280px';
-                  video.style.height = '720px';
-                  video.style.zIndex = '2147483647';
-                  video.style.objectFit = 'contain';
-                  try {
-                    await video.play();
-                  } catch (e) {}
-                }
-
-                return {
-                  frameIdx,
-                  videos: videos.length,
-                  paused: videos.map((v) => v.paused),
-                  readyStates: videos.map((v) => v.readyState)
-                };
-              }, idx).catch((e) => ({ frameIdx: idx, err: e.message }));
-            }
-
-            let clickedWillowAlt = false;
-            for (let i = 0; i < page.frames().length; i++) {
-              const res = await clickWillowAltInContext(page.frames()[i], i);
-              console.log('[WILLOW ALT CLICK CHECK]:', JSON.stringify(res));
-              if (res.clicked) clickedWillowAlt = true;
-            }
-
-            await new Promise((r) => setTimeout(r, 6000));
-
-            const syncPlayer = async () => {
+            async function ensureFullscreenAutoPlayInFrames() {
               const frames = page.frames();
               for (let i = 0; i < frames.length; i++) {
-                if (!clickedWillowAlt) {
-                  const clickRes = await clickWillowAltInContext(frames[i], i);
-                  if (clickRes.clicked) {
-                    clickedWillowAlt = true;
-                    console.log('[WILLOW ALT LATE CLICK]:', JSON.stringify(clickRes));
+                const info = await frames[i].evaluate(async (frameIdx) => {
+                  window.open = function () { return null; };
+
+                  const styleId = 'force-auto-fullscreen-style';
+                  if (!document.getElementById(styleId)) {
+                    const style = document.createElement('style');
+                    style.id = styleId;
+                    style.textContent = `
+                      html, body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        width: 1280px !important;
+                        height: 720px !important;
+                        overflow: hidden !important;
+                        background: #000 !important;
+                      }
+                      iframe, video {
+                        position: fixed !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        width: 1280px !important;
+                        height: 720px !important;
+                        max-width: 1280px !important;
+                        max-height: 720px !important;
+                        z-index: 2147483647 !important;
+                        background: #000 !important;
+                        object-fit: contain !important;
+                      }
+                    `;
+                    (document.head || document.documentElement).appendChild(style);
                   }
-                }
-                const info = await applyFullscreenAndPlayInContext(frames[i], i);
+
+                  const videos = Array.from(document.querySelectorAll('video'));
+                  for (const v of videos) {
+                    v.muted = false;
+                    v.volume = 1.0;
+                    v.controls = false;
+                    v.style.position = 'fixed';
+                    v.style.top = '0';
+                    v.style.left = '0';
+                    v.style.width = '1280px';
+                    v.style.height = '720px';
+                    v.style.zIndex = '2147483647';
+                    v.style.objectFit = 'contain';
+                    try {
+                      if (v.paused) {
+                        await v.play();
+                      }
+                    } catch (e) {}
+                  }
+
+                  return {
+                    frameIdx,
+                    videos: videos.length,
+                    paused: videos.map((v) => v.paused),
+                    readyStates: videos.map((v) => v.readyState)
+                  };
+                }, i).catch((e) => ({ frameIdx: i, err: e.message }));
                 console.log('[PLAYER SYNC]:', JSON.stringify(info));
               }
-            };
+            }
 
-            await syncPlayer();
-            setInterval(syncPlayer, 6000);
+            await new Promise((r) => setTimeout(r, 12000));
+            await ensureFullscreenAutoPlayInFrames();
+            setInterval(ensureFullscreenAutoPlayInFrames, 6000);
 
             await new Promise(() => {});
           })();
@@ -274,16 +190,22 @@ jobs:
               [vbw]crop=600:85:40:615,hue=s=0[sb_bw];\
               [vorig][sb_bw]overlay=x=40:y=615:shortest=1[sb_done];\
               [sb_done]split=4[q0][q1][q2][q3];\
-              [q0]crop=640:360:0:0,hue=h=-35:s=1.22,colorbalance=rs=0.14:gs=-0.08:bs=0.06:rm=0.10:gm=-0.06:bm=0.04[tl];\
-              [q1]crop=640:360:640:0,hue=h=55:s=1.22,colorbalance=rs=-0.10:gs=0.15:bs=-0.05:rm=-0.08:gm=0.10:bm=-0.04[tr];\
-              [q2]crop=640:360:0:360,hue=h=30:s=1.22,colorbalance=rs=0.10:gs=0.08:bs=-0.14:rm=0.08:gm=0.06:bm=-0.10[bl];\
-              [q3]crop=640:360:640:360,hue=h=-85:s=1.22,colorbalance=rs=-0.08:gs=0.04:bs=0.15:rm=-0.06:gm=0.03:bm=0.10[br];\
-              [bg][tl]overlay=x='mod(t*14,28)-14':y='mod(t*10,20)-10':shortest=1[s1];\
-              [s1][tr]overlay=x='640+mod(t*14,28)-14':y='mod(t*10,20)-10':shortest=1[s2];\
-              [s2][bl]overlay=x='mod(t*14,28)-14':y='360+mod(t*10,20)-10':shortest=1[s3];\
-              [s3][br]overlay=x='640+mod(t*14,28)-14':y='360+mod(t*10,20)-10':shortest=1,\
-              drawbox=x=638:y=0:w=4:h=720:color=#00aaff@0.9:t=fill,\
-              drawbox=x=0:y=358:w=1280:h=4:color=#00aaff@0.9:t=fill,\
+              [q0]crop=710:330:0:0,hue=h=-35:s=1.22,colorbalance=rs=0.14:gs=-0.08:bs=0.06:rm=0.10:gm=-0.06:bm=0.04[tl];\
+              [q1]crop=570:330:710:0,hue=h=55:s=1.22,colorbalance=rs=-0.10:gs=0.15:bs=-0.05:rm=-0.08:gm=0.10:bm=-0.04[tr];\
+              [q2]crop=550:390:0:330,hue=h=30:s=1.22,colorbalance=rs=0.10:gs=0.08:bs=-0.14:rm=0.08:gm=0.06:bm=-0.10[bl];\
+              [q3]crop=730:390:550:330,hue=h=-85:s=1.22,colorbalance=rs=-0.08:gs=0.04:bs=0.15:rm=-0.06:gm=0.03:bm=0.10[br];\
+              [bg][tl]overlay=x='0+mod(t*14,28)-14':y='0+mod(t*10,20)-10':shortest=1[s1];\
+              [s1][tr]overlay=x='710+mod(t*14,28)-14':y='0+mod(t*10,20)-10':shortest=1[s2];\
+              [s2][bl]overlay=x='0+mod(t*14,28)-14':y='330+mod(t*10,20)-10':shortest=1[s3];\
+              [s3][br]overlay=x='550+mod(t*14,28)-14':y='330+mod(t*10,20)-10':shortest=1[parts_done];\
+              color=c=0x00000000:s=1280x720,format=rgba[lines_base];\
+              [lines_base]drawbox=x=708:y=0:w=4:h=332:color=#00aaff@0.95:t=fill,\
+              drawbox=x=548:y=328:w=4:h=392:color=#00aaff@0.95:t=fill,\
+              drawbox=x=0:y=328:w=712:h=4:color=#00aaff@0.95:t=fill,\
+              drawbox=x=548:y=328:w=732:h=4:color=#00aaff@0.95:t=fill,\
+              perspective=x0=28:y0=0:x1=1252:y1=0:x2=-28:y2=720:x3=1308:y3=720:sense=destination[slanted_lines];\
+              [parts_done]perspective=x0=28:y0=0:x1=1252:y1=0:x2=-28:y2=720:x3=1308:y3=720:sense=destination[slanted_video];\
+              [slanted_video][slanted_lines]overlay=0:0:shortest=1,\
               hue=h=12:s=1.08:b=0.02,eq=contrast=1.06:brightness=0.01,\
               drawbox=x=0:y=0:w=1280:h=6:color=white@0.45:t=fill,\
               drawbox=x=0:y=714:w=1280:h=6:color=white@0.45:t=fill,\
@@ -309,3 +231,4 @@ jobs:
           FFEOF
 
           bash run_stream.sh
+          
