@@ -42,7 +42,7 @@ jobs:
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
-          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-0-australia-vs-england&title=Australia%20Vs%20England';
+          const TARGET_URL = 'https://www.streamx.website/match?tv=1&id=tv-1&title=Australia+vs+England';
 
           (async () => {
             const browser = await puppeteer.launch({
@@ -53,7 +53,6 @@ jobs:
                 '--disable-gpu',
                 '--window-size=1280,720',
                 '--autoplay-policy=no-user-gesture-required',
-                '--start-fullscreen',
                 '--block-new-web-contents'
               ]
             });
@@ -81,7 +80,7 @@ jobs:
               window.open = function () { return null; };
             });
 
-            console.log('Navigating to Australia vs England stream...');
+            console.log('Navigating to StreamX Australia vs England...');
             try {
               await page.goto(TARGET_URL, {
                 waitUntil: 'domcontentloaded',
@@ -92,60 +91,21 @@ jobs:
               console.log('Navigation error:', e.message);
             }
 
-            async function ensureFullscreenAutoPlayInFrames() {
+            async function ensureAutoPlayInFrames() {
               const frames = page.frames();
               for (let i = 0; i < frames.length; i++) {
                 const info = await frames[i].evaluate(async (frameIdx) => {
                   window.open = function () { return null; };
-
-                  const styleId = 'force-streamx-auto-fullscreen-style';
-                  if (!document.getElementById(styleId)) {
-                    const style = document.createElement('style');
-                    style.id = styleId;
-                    style.textContent = `
-                      html, body {
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        width: 1280px !important;
-                        height: 720px !important;
-                        overflow: hidden !important;
-                        background: #000 !important;
-                      }
-                      iframe, video {
-                        position: fixed !important;
-                        top: 0 !important;
-                        left: 0 !important;
-                        width: 1280px !important;
-                        height: 720px !important;
-                        max-width: 1280px !important;
-                        max-height: 720px !important;
-                        z-index: 2147483647 !important;
-                        background: #000 !important;
-                        object-fit: contain !important;
-                      }
-                    `;
-                    (document.head || document.documentElement).appendChild(style);
-                  }
-
                   const videos = Array.from(document.querySelectorAll('video'));
                   for (const v of videos) {
                     v.muted = false;
                     v.volume = 1.0;
-                    v.controls = false;
-                    v.style.position = 'fixed';
-                    v.style.top = '0';
-                    v.style.left = '0';
-                    v.style.width = '1280px';
-                    v.style.height = '720px';
-                    v.style.zIndex = '2147483647';
-                    v.style.objectFit = 'contain';
                     try {
                       if (v.paused) {
                         await v.play();
                       }
                     } catch (e) {}
                   }
-
                   return {
                     frameIdx,
                     videos: videos.length,
@@ -158,8 +118,8 @@ jobs:
             }
 
             await new Promise((r) => setTimeout(r, 12000));
-            await ensureFullscreenAutoPlayInFrames();
-            setInterval(ensureFullscreenAutoPlayInFrames, 6000);
+            await ensureAutoPlayInFrames();
+            setInterval(ensureAutoPlayInFrames, 6000);
 
             await new Promise(() => {});
           })();
@@ -178,17 +138,20 @@ jobs:
             -thread_queue_size 1024 \
             -f pulse -i virtual_speaker.monitor \
             -filter_complex "\
+            color=c=black:s=1280x720:r=25[bg];\
             [0:v]crop=in_w-32:in_h-32:16:16,scale=1280:720,fps=25,\
-            zoompan=z='0.94+0.015*sin(on*0.025)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,\
+            rotate=2*PI/180:fillcolor=black:ow=1280:oh=720,\
+            zoompan=z='0.96+0.012*sin(on*0.025)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,\
             noise=alls=12:allf=t+u,\
             split=4[q0][q1][q2][q3];\
             [q0]crop=640:360:0:0,hue=h=-45:s=1.35,colorbalance=rs=0.22:gs=-0.12:bs=0.14:rm=0.18:gm=-0.10:bm=0.12[tl];\
             [q1]crop=640:360:640:0,hue=h=75:s=1.35,colorbalance=rs=-0.16:gs=0.24:bs=-0.08:rm=-0.12:gm=0.18:bm=-0.06[tr];\
             [q2]crop=640:360:0:360,hue=h=35:s=1.35,colorbalance=rs=0.18:gs=0.16:bs=-0.22:rm=0.14:gm=0.12:bm=-0.16[bl];\
             [q3]crop=640:360:640:360,hue=h=-110:s=1.35,colorbalance=rs=-0.14:gs=0.06:bs=0.24:rm=-0.10:gm=0.04:bm=0.18[br];\
-            [tl][tr]hstack=inputs=2[top];\
-            [bl][br]hstack=inputs=2[bot];\
-            [top][bot]vstack=inputs=2,\
+            [bg][tl]overlay=x='6*sin(t*0.8)':y='5*cos(t*0.7)':shortest=1[s1];\
+            [s1][tr]overlay=x='640+6*cos(t*0.75)':y='5*sin(t*0.85)':shortest=1[s2];\
+            [s2][bl]overlay=x='6*cos(t*0.65)':y='360+5*sin(t*0.8)':shortest=1[s3];\
+            [s3][br]overlay=x='640+6*sin(t*0.85)':y='360+5*cos(t*0.75)':shortest=1,\
             drawgrid=w=2:h=6:color=black@0.08:t=1,\
             drawbox=x=0:y='mod(t*100, 720)':w=1280:h=3:color=white@0.05:t=fill,\
             drawbox=x=15:y=15:w=220:h=55:color=black@0.95:t=fill,\
