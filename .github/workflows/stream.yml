@@ -174,7 +174,7 @@ jobs:
             -f pulse -i virtual_speaker.monitor \
             -filter_complex "\
             [0:v]crop=in_w-32:in_h-32:16:16,scale=1280:720,fps=25,\
-            zoompan=z='min(max(zoom,pzoom)+0.0006*sin(t*0.63),1.012)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,\
+            zoompan=z='1.006+0.006*sin(on*0.025)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,\
             noise=alls=10:allf=t+u,\
             split=4[q0][q1][q2][q3];\
             [q0]crop=640:360:0:0,colorbalance=rs=0.04:gs=-0.03:bs=-0.02:rm=0.03:gm=-0.02:bm=-0.02[tl];\
