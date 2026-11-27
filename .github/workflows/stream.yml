@@ -34,6 +34,12 @@ jobs:
           Xvfb :99 -screen 0 1280x720x24 > /dev/null 2>&1 &
           export DISPLAY=:99
 
+          # Start PulseAudio and create a virtual sink for browser/FFmpeg audio
+          pulseaudio --start --exit-idle-time=-1 --log-target=syslog || true
+          pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description="Virtual_Speaker" || true
+          pactl set-default-sink virtual_speaker || true
+          pactl set-default-source virtual_speaker.monitor || true
+
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
@@ -123,7 +129,8 @@ jobs:
 
                 const videos = Array.from(document.querySelectorAll('video'));
                 for (const video of videos) {
-                  video.muted = true;
+                  video.muted = false;
+                  video.volume = 1.0;
                   video.controls = false;
                   video.style.position = 'fixed';
                   video.style.top = '0';
@@ -164,7 +171,7 @@ jobs:
           cat << 'FFEOF' > run_stream.sh
           ffmpeg -y \
             -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
-            -f alsa -i default \
+            -f pulse -i virtual_speaker.monitor \
             -filter_complex "\
             [0:v]crop=in_w-32:in_h-32:16:16,scale=1280:720,fps=25,\
             zoompan=z='min(max(zoom,pzoom)+0.0006*sin(t*0.63),1.012)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,\
