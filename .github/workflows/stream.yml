@@ -243,16 +243,15 @@ jobs:
           #!/usr/bin/env bash
           while true; do
             ffmpeg -y \
+              -fflags +genpts \
               -thread_queue_size 2048 \
               -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
               -thread_queue_size 2048 \
               -f pulse -i virtual_speaker.monitor \
               -filter_complex "\
               color=c=black:s=1280x720:r=25[bg];\
-              [0:v]crop=in_w-32:in_h-32:16:16,scale=1280:720,fps=25,\
+              [0:v]crop=in_w-32:in_h-32:16:16,scale=1228:691,pad=1280:720:(ow-iw)/2:(oh-ih)/2:black,fps=25,\
               rotate=2*PI/180:fillcolor=black:ow=1280:oh=720,\
-              zoompan=z='0.96+0.012*sin(on*0.025)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,\
-              noise=alls=10:allf=t+u,\
               split=4[q0][q1][q2][q3];\
               [q0]crop=640:360:0:0,colorbalance=rs=0.06:gs=-0.04:bs=-0.03:rm=0.04:gm=-0.03:bm=-0.02[tl];\
               [q1]crop=640:360:640:0,colorbalance=rs=-0.04:gs=0.07:bs=-0.03:rm=-0.03:gm=0.05:bm=-0.02[tr];\
@@ -276,7 +275,7 @@ jobs:
               [1:a]highpass=f=65,lowpass=f=2400,bass=g=11:f=110:w=0.8,equalizer=f=180:width_type=h:w=120:g=6,vibrato=f=2.5:d=0.25,aecho=in_gain=0.85:out_gain=0.9:delays=110|180:decays=0.55|0.4,asetrate=44100*0.76,atempo=1.3157,aresample=44100:async=1:first_pts=0[main_a];\
               [main_a][bgnoise]amix=inputs=2:weights='1 0.15':duration=shortest,asetpts=PTS-STARTPTS[a]" \
               -map "[v]" -map "[a]" \
-              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1600k -maxrate 1900k -bufsize 3800k \
+              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1400k -maxrate 1650k -bufsize 3300k \
               -max_muxing_queue_size 4096 \
               -c:a aac -b:a 96k -ar 44100 -ac 2 \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
