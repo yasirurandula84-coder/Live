@@ -42,7 +42,7 @@ jobs:
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
-          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-0-australia-vs-england&title=Australia%20Vs%20England';
+          const TARGET_URL = 'https://www.streamx.website/match?tv=1&id=tv-1&title=Australia+vs+England';
 
           (async () => {
             const browser = await puppeteer.launch({
@@ -81,7 +81,7 @@ jobs:
               window.open = function () { return null; };
             });
 
-            console.log('Navigating to Australia vs England stream...');
+            console.log('Navigating to StreamX...');
             try {
               await page.goto(TARGET_URL, {
                 waitUntil: 'domcontentloaded',
@@ -94,38 +94,11 @@ jobs:
 
             await new Promise((r) => setTimeout(r, 12000));
 
-            async function clickFancodeInContext(ctx, idx) {
-              return ctx.evaluate((frameIdx) => {
-                window.open = function () { return null; };
-                const candidates = Array.from(
-                  document.querySelectorAll('button, a, div, span, li, [role="button"]')
-                );
-                for (const el of candidates) {
-                  const text = (el.innerText || el.textContent || '').trim().toLowerCase();
-                  const attrs = [
-                    el.getAttribute('aria-label') || '',
-                    el.getAttribute('title') || '',
-                    el.getAttribute('data-server') || '',
-                    el.getAttribute('data-channel') || '',
-                    typeof el.className === 'string' ? el.className : ''
-                  ].join(' ').toLowerCase();
-
-                  const isSmallOrButton = el.tagName === 'BUTTON' || el.tagName === 'A' || el.getAttribute('role') === 'button' || text.length <= 40;
-                  if (isSmallOrButton && (text.includes('fancode') || attrs.includes('fancode'))) {
-                    el.scrollIntoView({ block: 'center', inline: 'center' });
-                    el.click();
-                    return { clicked: true, frameIdx, matchedText: text || attrs.slice(0, 40) };
-                  }
-                }
-                return { clicked: false, frameIdx };
-              }, idx).catch((e) => ({ clicked: false, frameIdx: idx, err: e.message }));
-            }
-
             async function applyFullscreenAndPlayInContext(ctx, idx) {
               return ctx.evaluate(async (frameIdx) => {
                 window.open = function () { return null; };
 
-                const styleId = 'force-fancode-fullscreen-style';
+                const styleId = 'force-streamx-fullscreen-style';
                 if (!document.getElementById(styleId)) {
                   const style = document.createElement('style');
                   style.id = styleId;
@@ -179,25 +152,9 @@ jobs:
               }, idx).catch((e) => ({ frameIdx: idx, err: e.message }));
             }
 
-            let clickedAny = false;
-            for (let i = 0; i < page.frames().length; i++) {
-              const res = await clickFancodeInContext(page.frames()[i], i);
-              console.log('[FANCODE CLICK CHECK]:', JSON.stringify(res));
-              if (res.clicked) clickedAny = true;
-            }
-
-            await new Promise((r) => setTimeout(r, 6000));
-
             const syncPlayer = async () => {
               const frames = page.frames();
               for (let i = 0; i < frames.length; i++) {
-                if (!clickedAny) {
-                  const clickRes = await clickFancodeInContext(frames[i], i);
-                  if (clickRes.clicked) {
-                    clickedAny = true;
-                    console.log('[FANCODE LATE CLICK]:', JSON.stringify(clickRes));
-                  }
-                }
                 const info = await applyFullscreenAndPlayInContext(frames[i], i);
                 console.log('[PLAYER SYNC]:', JSON.stringify(info));
               }
