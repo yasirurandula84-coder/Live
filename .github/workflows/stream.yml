@@ -53,7 +53,6 @@ jobs:
                 '--disable-gpu',
                 '--window-size=1280,720',
                 '--autoplay-policy=no-user-gesture-required',
-                '--start-fullscreen',
                 '--block-new-web-contents'
               ]
             });
@@ -87,103 +86,44 @@ jobs:
                 waitUntil: 'domcontentloaded',
                 timeout: 60000
               });
-              console.log('DOM loaded. Current URL:', page.url());
+              console.log('Loaded URL:', page.url());
             } catch (e) {
-              console.log('Navigation warning/error:', e.message);
+              console.log('Navigation error:', e.message);
             }
 
-            await new Promise((r) => setTimeout(r, 15000));
+            await new Promise((r) => setTimeout(r, 12000));
 
-            async function expandAndPlayInContext(ctx, idx) {
-              return ctx.evaluate(async (frameIdx) => {
-                window.open = function () { return null; };
+            // Center click to trigger player normally without overriding layout CSS
+            try {
+              await page.mouse.click(640, 360);
+              console.log('Clicked center of page (640, 360).');
+            } catch (e) {}
 
-                const styleId = 'force-fullscreen-stream-style';
-                if (!document.getElementById(styleId)) {
-                  const style = document.createElement('style');
-                  style.id = styleId;
-                  style.textContent = `
-                    html, body {
-                      margin: 0 !important;
-                      padding: 0 !important;
-                      width: 1280px !important;
-                      height: 720px !important;
-                      overflow: hidden !important;
-                      background: #000 !important;
-                    }
-                    iframe, video {
-                      position: fixed !important;
-                      top: 0 !important;
-                      left: 0 !important;
-                      width: 1280px !important;
-                      height: 720px !important;
-                      max-width: 1280px !important;
-                      max-height: 720px !important;
-                      z-index: 2147483647 !important;
-                      background: #000 !important;
-                      object-fit: contain !important;
-                    }
-                  `;
-                  (document.head || document.documentElement).appendChild(style);
-                }
-
-                // Center click to dismiss/start player if needed
-                const videos = Array.from(document.querySelectorAll('video'));
-                const iframes = Array.from(document.querySelectorAll('iframe'));
-
-                const playCandidates = Array.from(
-                  document.querySelectorAll('button, [role="button"], .play, .vjs-big-play-button, .jw-icon-display')
-                );
-                for (const el of playCandidates) {
-                  const txt = (el.innerText || el.ariaLabel || el.className || '').toLowerCase();
-                  if (txt.includes('play') || el.className.toString().toLowerCase().includes('play')) {
-                    try { el.click(); } catch (e) {}
+            async function unmuteAndPlayInFrames() {
+              for (const frame of page.frames()) {
+                await frame.evaluate(async () => {
+                  window.open = function () { return null; };
+                  const videos = Array.from(document.querySelectorAll('video'));
+                  for (const v of videos) {
+                    v.muted = false;
+                    v.volume = 1.0;
+                    try {
+                      await v.play();
+                    } catch (e) {}
                   }
-                }
-
-                for (const video of videos) {
-                  video.muted = false;
-                  video.volume = 1.0;
-                  video.controls = false;
-                  video.style.position = 'fixed';
-                  video.style.top = '0';
-                  video.style.left = '0';
-                  video.style.width = '1280px';
-                  video.style.height = '720px';
-                  video.style.zIndex = '2147483647';
-                  video.style.objectFit = 'contain';
-                  try {
-                    await video.play();
-                  } catch (e) {}
-                }
-
-                return {
-                  frameIdx,
-                  videos: videos.length,
-                  iframes: iframes.length,
-                  readyStates: videos.map((v) => v.readyState),
-                  paused: videos.map((v) => v.paused)
-                };
-              }, idx).catch((e) => ({ frameIdx: idx, err: e.message }));
+                }).catch(() => {});
+              }
             }
 
-            const inspectAllFrames = async () => {
-              const frames = page.frames();
-              for (let i = 0; i < frames.length; i++) {
-                const info = await expandAndPlayInContext(frames[i], i);
-                console.log(`[FRAME ${i} -> ${frames[i].url()}]:`, JSON.stringify(info));
-              }
-            };
-
-            await inspectAllFrames();
-            setInterval(inspectAllFrames, 6000);
+            await unmuteAndPlayInFrames();
+            setInterval(unmuteAndPlayInFrames, 6000);
 
             await new Promise(() => {});
           })();
           EOF
 
           node launch.js > launch.log 2>&1 &
-          sleep 30
+          sleep 25
           echo "=== LAUNCH.JS LOGS ==="
           cat launch.log || true
           echo "======================"
@@ -224,4 +164,3 @@ jobs:
           FFEOF
 
           bash run_stream.sh
-          
