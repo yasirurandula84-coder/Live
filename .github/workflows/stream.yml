@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Audio Sync Lock + Anti-Freeze + Full Filters)
+name: Stream Match to Facebook (Wallclock Fix + Audio Sync + Anti-Freeze)
 
 on:
   workflow_dispatch:
@@ -273,7 +273,7 @@ jobs:
             ffmpeg -y \
               -fflags +genpts+igndts \
               -thread_queue_size 4096 \
-              -f x11grab -use_wallclock_timestamps 1 -framerate 25 -video_size 1280x720 -i :99.0 \
+              -f x11grab -use_wallclock_as_timestamps 1 -framerate 25 -video_size 1280x720 -i :99.0 \
               -thread_queue_size 4096 \
               -f pulse -i virtual_speaker.monitor \
               -loop 1 -i logo.jpg \
