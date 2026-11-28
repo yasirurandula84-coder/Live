@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (LED TV Screen Layout + Rotate Fix)
+name: Stream Match to Facebook (Logo Shifted Right + Full Filters)
 
 on:
   workflow_dispatch:
@@ -54,6 +54,7 @@ jobs:
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-gpu',
+                '--disable-dev-shm-usage',
                 '--window-size=1280,720',
                 '--autoplay-policy=no-user-gesture-required',
                 '--start-fullscreen',
@@ -143,7 +144,7 @@ jobs:
                     v.style.zIndex = '2147483647';
                     v.style.objectFit = 'contain';
                     try {
-                      if (v.paused) {
+                      if (v.paused || v.ended) {
                         await v.play();
                       }
                     } catch (e) {}
@@ -178,21 +179,21 @@ jobs:
           #!/usr/bin/env bash
           while true; do
             ffmpeg -y \
-              -fflags +genpts \
-              -thread_queue_size 2048 \
-              -f x11grab -framerate 27 -video_size 1280x720 -i :99.0 \
-              -thread_queue_size 2048 \
+              -fflags +genpts+igndts \
+              -thread_queue_size 4096 \
+              -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
+              -thread_queue_size 4096 \
               -f pulse -i virtual_speaker.monitor \
               -loop 1 -i logo.jpg \
               -filter_complex "\
-              color=c=#0b0f17:s=1280x720:r=27[bg];\
-              [0:v]scale=1320:742,fps=27,\
+              color=c=black:s=1280x720:r=25[bg];\
+              [0:v]scale=1320:742,fps=25,\
               crop=w=1280:h=720:x='20+14*sin(t*0.45)':y='11+10*cos(t*0.38)',\
               split=2[vtop_raw][vbot_raw];\
               [vtop_raw]crop=1280:615:0:0,split=2[vleft][vright];\
               [vleft]crop=640:615:0:0,hue=h=-25:s=1.15,colorbalance=rs=0.12:gs=-0.04:bs=0.08:rm=0.08:gm=-0.02:bm=0.06[left_tinted];\
               [vright]crop=640:615:640:0,hue=h=35:s=1.15,colorbalance=rs=-0.06:gs=0.10:bs=-0.04:rm=-0.04:gm=0.07:bm=-0.02[right_tinted];\
-              color=c=black:s=1280x615:r=27[top_bg];\
+              color=c=black:s=1280x615:r=25[top_bg];\
               [top_bg][left_tinted]overlay=0:0:shortest=1[top_half];\
               [top_half][right_tinted]overlay=640:0:shortest=1,\
               perspective=x0=55:y0=0:x1=1225:y1=0:x2=-45:y2=615:x3=1325:y3=615:sense=destination,\
@@ -200,8 +201,7 @@ jobs:
               rotate='0.0075*sin(t*0.5)':fillcolor=black@0:ow=1304:oh=627,\
               crop=1280:615:(iw-1280)/2:(ih-615)/2[top_tilted];\
               [vbot_raw]crop=1280:105:0:615[bot_straight];\
-              color=c=black:s=1280x720:r=27[match_canvas];\
-              [match_canvas][bot_straight]overlay=0:615:shortest=1[with_bot];\
+              [bg][bot_straight]overlay=0:615:shortest=1[with_bot];\
               [with_bot][top_tilted]overlay=0:0:shortest=1,\
               drawbox=x=0:y=0:w=1280:h=4:color=white@0.22:t=fill,\
               drawbox=x=0:y=716:w=1280:h=4:color=white@0.22:t=fill,\
@@ -225,16 +225,9 @@ jobs:
               drawbox=x='mod(1190+t*45,1260)':y='155+45*sin(t*0.7+6.0)':w=4:h=4:color=white@0.045:t=fill,\
               drawbox=x='mod(1260+t*45,1260)':y='120+45*sin(t*0.7+6.4)':w=4:h=4:color=white@0.045:t=fill,\
               drawbox=x='mod(1330+t*45,1260)':y='155+45*sin(t*0.7+6.8)':w=4:h=4:color=white@0.045:t=fill,\
-              drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='STREAMX LIVE':x='(w-text_w)/2+110*sin(t*0.35)':y='(h-text_h)/2-35+45*cos(t*0.28)':fontsize=26:fontcolor=white@0.26[match_wmark];\
+              drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='STREAMX LIVE':x='(w-text_w)/2+110*sin(t*0.35)':y='(h-text_h)/2-35+45*cos(t*0.28)':fontsize=26:fontcolor=white@0.26[v_base];\
               [2:v]scale=420:84:force_original_aspect_ratio=decrease,pad=420:84:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
-              [match_wmark][logo_scaled]overlay=x=845:y=20:shortest=1,scale=1104:604[tv_screen];\
-              [bg]\
-              drawbox=x=72:y=24:w=1136:h=632:color=#1d2430@0.98:t=fill,\
-              drawbox=x=76:y=28:w=1128:h=624:color=#05070a@1.0:t=fill,\
-              drawbox=x=520:y=656:w=240:h=10:color=#181e28@0.95:t=fill,\
-              drawbox=x=460:y=666:w=360:h=12:color=#222a38@0.95:t=fill,\
-              drawbox=x=1178:y=638:w=10:h=4:color=#38bdf8@0.85:t=fill[tv_frame];\
-              [tv_frame][tv_screen]overlay=x=88:y=38:shortest=1[v];\
+              [v_base][logo_scaled]overlay=x=856:y=20:shortest=1[v];\
               anoisesrc=color=pink:amplitude=0.015:sample_rate=44100[amb_tex];\
               [1:a]adelay=2500|2500,highpass=f=75,lowpass=f=2400,\
               equalizer=f=320:t=q:w=1.5:g=-3,equalizer=f=1450:t=q:w=1.2:g=2.5,\
@@ -243,15 +236,15 @@ jobs:
               asetrate=44100*0.78,atempo=1.282,aresample=44100:async=1:first_pts=0[main_a];\
               [main_a][amb_tex]amix=inputs=2:weights='1 0.16':duration=shortest,asetpts=PTS-STARTPTS[a]" \
               -map "[v]" -map "[a]" \
-              -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 54 -keyint_min 54 -b:v 1700k -maxrate 2000k -bufsize 3800k \
-              -max_muxing_queue_size 4096 \
+              -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1500k -maxrate 1750k -bufsize 3500k \
+              -max_muxing_queue_size 8192 \
               -c:a aac -b:a 112k -ar 44100 -ac 2 \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
               -rtmp_live live \
               -flvflags no_duration_filesize \
               -f flv "rtmps://live-api-s.facebook.com:443/rtmp/${{ secrets.FB_KEY }}" || true
-            echo "Stream ended or dropped, reconnecting in 1s..."
-            sleep 1
+            echo "Stream ended or dropped, reconnecting in 3s..."
+            sleep 3
           done
           FFEOF
 
