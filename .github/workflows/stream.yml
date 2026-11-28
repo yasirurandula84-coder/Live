@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Logo x=890 + Anti-Freeze + Full Filters)
+name: Stream Match to Facebook (Audio Sync Lock + Anti-Freeze + Full Filters)
 
 on:
   workflow_dispatch:
@@ -181,6 +181,8 @@ jobs:
                     v.muted = false;
                     v.volume = 1.0;
                     v.controls = false;
+                    v.preload = 'auto';
+                    v.playbackRate = 1.0;
                     v.style.position = 'fixed';
                     v.style.top = '0';
                     v.style.left = '0';
@@ -201,7 +203,8 @@ jobs:
                     videos: videos.length,
                     paused: videos.map((v) => v.paused),
                     currentTimes: videos.map((v) => Number((v.currentTime || 0).toFixed(2))),
-                    readyStates: videos.map((v) => v.readyState)
+                    readyStates: videos.map((v) => v.readyState),
+                    networkStates: videos.map((v) => v.networkState)
                   };
                 }, i, q540).catch((e) => ({ frameIdx: i, err: e.message }));
 
@@ -218,23 +221,31 @@ jobs:
               if (anyVideoFound && maxCurrentTime >= 0) {
                 if (Math.abs(maxCurrentTime - lastProgressTime) < 0.05) {
                   stuckTicks += 1;
-                  console.log('[WATCHDOG]: Video time stalled, stuckTicks =', stuckTicks);
+                  console.log('[WATCHDOG]: Match video stalled, stuckTicks =', stuckTicks);
                 } else {
                   stuckTicks = 0;
                   lastProgressTime = maxCurrentTime;
                 }
 
                 if (stuckTicks === 2) {
-                  console.log('[WATCHDOG]: Forcing video.play() recovery...');
+                  console.log('[WATCHDOG]: Nudging video playback...');
                   for (const frame of page.frames()) {
                     await frame.evaluate(() => {
                       document.querySelectorAll('video').forEach((v) => {
+                        try {
+                          if (v.buffered && v.buffered.length > 0 && isFinite(v.duration)) {
+                            const end = v.buffered.end(v.buffered.length - 1);
+                            if (end - v.currentTime > 1.5 && end - v.currentTime < 15) {
+                              v.currentTime = end - 0.5;
+                            }
+                          }
+                        } catch (e) {}
                         v.play().catch(() => {});
                       });
                     }).catch(() => {});
                   }
                 } else if (stuckTicks >= 4) {
-                  console.log('[WATCHDOG]: Video frozen too long, reloading page...');
+                  console.log('[WATCHDOG]: Match video frozen too long, reloading page...');
                   stuckTicks = 0;
                   lastProgressTime = -1;
                   await loadMatchPage();
@@ -242,9 +253,9 @@ jobs:
               }
             }
 
-            await new Promise((r) => setTimeout(r, 12000));
+            await new Promise((r) => setTimeout(r, 10000));
             await ensureFullscreenAutoPlayInFrames();
-            setInterval(ensureFullscreenAutoPlayInFrames, 8000);
+            setInterval(ensureFullscreenAutoPlayInFrames, 3500);
 
             await new Promise(() => {});
           })();
@@ -262,7 +273,7 @@ jobs:
             ffmpeg -y \
               -fflags +genpts+igndts \
               -thread_queue_size 4096 \
-              -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
+              -f x11grab -use_wallclock_timestamps 1 -framerate 25 -video_size 1280x720 -i :99.0 \
               -thread_queue_size 4096 \
               -f pulse -i virtual_speaker.monitor \
               -loop 1 -i logo.jpg \
@@ -314,8 +325,8 @@ jobs:
               equalizer=f=320:t=q:w=1.5:g=-3,equalizer=f=1450:t=q:w=1.2:g=2.5,\
               bass=g=10:f=110:w=0.8,vibrato=f=3.0:d=0.3,\
               aecho=in_gain=0.85:out_gain=0.85:delays=100|170:decays=0.5|0.35,\
-              asetrate=44100*0.78,atempo=1.282,aresample=44100:async=1:first_pts=0[main_a];\
-              [main_a][amb_tex]amix=inputs=2:weights='1 0.16':duration=shortest,asetpts=PTS-STARTPTS[a]" \
+              asetrate=44100*0.78,atempo=1.282,aresample=44100:async=1000:first_pts=0[main_a];\
+              [main_a][amb_tex]amix=inputs=2:weights='1 0.16':duration=shortest:dropout_transition=3,asetpts=PTS-STARTPTS[a]" \
               -map "[v]" -map "[a]" \
               -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1350k -maxrate 1550k -bufsize 3000k \
               -max_muxing_queue_size 8192 \
