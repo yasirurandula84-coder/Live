@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Reduced Lag + Smooth CPU)
+name: Stream Match to Facebook (ILT T20 Vs ILT T20)
 
 on:
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
-          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-1-new-zealand-vs-india&title=New%20Zealand%20Vs%20India';
+          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-1-ilt-t20-vs-ilt-t20&title=ILT%20T20%20Vs%20ILT%20T20';
 
           (async () => {
             const browser = await puppeteer.launch({
