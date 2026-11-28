@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Black Screen Fix + FootfyTV 5928)
+name: Stream Match to Facebook (FootfyTV 5928 - Low Lag)
 
 on:
   workflow_dispatch:
@@ -138,13 +138,11 @@ jobs:
 
             let lastProgressTime = -1;
             let stuckTicks = 0;
-            let noVideoTicks = 0;
 
             async function ensureFullscreenAutoPlayInFrames() {
               const frames = page.frames();
               let anyVideoFound = false;
               let maxCurrentTime = -1;
-              let maxReadyState = 0;
 
               for (let i = 0; i < frames.length; i++) {
                 let q540 = false;
@@ -224,43 +222,29 @@ jobs:
                   for (const ct of info.currentTimes || []) {
                     if (ct > maxCurrentTime) maxCurrentTime = ct;
                   }
-                  for (const rs of info.readyStates || []) {
-                    if (rs > maxReadyState) maxReadyState = rs;
-                  }
                 }
               }
 
-              if (!anyVideoFound) {
-                noVideoTicks += 1;
-                console.log('[WATCHDOG]: No video element found, noVideoTicks =', noVideoTicks);
-                if (noVideoTicks >= 6) {
-                  noVideoTicks = 0;
-                  await loadMatchPage();
-                }
-                return;
+              if (anyVideoFound) {
+                tried540Once = true;
               }
 
-              noVideoTicks = 0;
-              tried540Once = true;
-
-              if (maxCurrentTime >= 0) {
-                if (Math.abs(maxCurrentTime - lastProgressTime) < 0.05 || maxReadyState < 2) {
+              if (anyVideoFound && maxCurrentTime >= 0) {
+                if (Math.abs(maxCurrentTime - lastProgressTime) < 0.05) {
                   stuckTicks += 1;
-                  console.log('[WATCHDOG]: Match video stalled/black, stuckTicks =', stuckTicks, 'readyState =', maxReadyState);
+                  console.log('[WATCHDOG]: Match video stalled, stuckTicks =', stuckTicks);
                 } else {
                   stuckTicks = 0;
                   lastProgressTime = maxCurrentTime;
                 }
 
                 if (stuckTicks === 2) {
-                  console.log('[WATCHDOG]: Reloading video source and forcing play()...');
+                  console.log('[WATCHDOG]: Nudging video playback...');
                   for (const frame of page.frames()) {
                     await frame.evaluate(() => {
                       document.querySelectorAll('video').forEach((v) => {
                         try {
-                          if (v.readyState < 2) {
-                            v.load();
-                          } else if (v.buffered && v.buffered.length > 0 && isFinite(v.duration)) {
+                          if (v.buffered && v.buffered.length > 0 && isFinite(v.duration)) {
                             const end = v.buffered.end(v.buffered.length - 1);
                             if (end - v.currentTime > 1.5 && end - v.currentTime < 15) {
                               v.currentTime = end - 0.5;
@@ -271,8 +255,8 @@ jobs:
                       });
                     }).catch(() => {});
                   }
-                } else if (stuckTicks >= 4) {
-                  console.log('[WATCHDOG]: Match video black/frozen too long, reloading page...');
+                } else if (stuckTicks >= 5) {
+                  console.log('[WATCHDOG]: Match video frozen too long, reloading page...');
                   stuckTicks = 0;
                   lastProgressTime = -1;
                   await loadMatchPage();
@@ -282,7 +266,7 @@ jobs:
 
             await new Promise((r) => setTimeout(r, 10000));
             await ensureFullscreenAutoPlayInFrames();
-            setInterval(ensureFullscreenAutoPlayInFrames, 3000);
+            setInterval(ensureFullscreenAutoPlayInFrames, 4000);
 
             await new Promise(() => {});
           })();
