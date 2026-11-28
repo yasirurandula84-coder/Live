@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (ILT T20 Vs ILT T20)
+name: Stream Match to Facebook (FootfyTV 5928)
 
 on:
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
-          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-1-ilt-t20-vs-ilt-t20&title=ILT%20T20%20Vs%20ILT%20T20';
+          const TARGET_URL = 'https://footfytv.my/match.php?id=5928';
 
           (async () => {
             const browser = await puppeteer.launch({
