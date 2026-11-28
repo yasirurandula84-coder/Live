@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (New Zealand vs India + Full Filters)
+name: Stream Match to Facebook (LED TV Screen Layout + Full Filters)
 
 on:
   workflow_dispatch:
@@ -185,7 +185,7 @@ jobs:
               -f pulse -i virtual_speaker.monitor \
               -loop 1 -i logo.jpg \
               -filter_complex "\
-              color=c=black:s=1280x720:r=27[bg];\
+              color=c=#0b0f17:s=1280x720:r=27[bg];\
               [0:v]scale=1320:742,fps=27,\
               crop=w=1280:h=720:x='20+14*sin(t*0.45)':y='11+10*cos(t*0.38)',\
               split=2[vtop_raw][vbot_raw];\
@@ -200,7 +200,8 @@ jobs:
               rotate='0.0075*sin(t*0.5)':fillcolor=black@0:ow=rotw(0.0075*sin(t*0.5)):oh=roth(0.0075*sin(t*0.5)),\
               crop=1280:615:(iw-1280)/2:(ih-615)/2[top_tilted];\
               [vbot_raw]crop=1280:105:0:615[bot_straight];\
-              [bg][bot_straight]overlay=0:615:shortest=1[with_bot];\
+              color=c=black:s=1280x720:r=27[match_canvas];\
+              [match_canvas][bot_straight]overlay=0:615:shortest=1[with_bot];\
               [with_bot][top_tilted]overlay=0:0:shortest=1,\
               drawbox=x=0:y=0:w=1280:h=4:color=white@0.22:t=fill,\
               drawbox=x=0:y=716:w=1280:h=4:color=white@0.22:t=fill,\
@@ -224,9 +225,16 @@ jobs:
               drawbox=x='mod(1190+t*45,1260)':y='155+45*sin(t*0.7+6.0)':w=4:h=4:color=white@0.045:t=fill,\
               drawbox=x='mod(1260+t*45,1260)':y='120+45*sin(t*0.7+6.4)':w=4:h=4:color=white@0.045:t=fill,\
               drawbox=x='mod(1330+t*45,1260)':y='155+45*sin(t*0.7+6.8)':w=4:h=4:color=white@0.045:t=fill,\
-              drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='STREAMX LIVE':x='(w-text_w)/2+110*sin(t*0.35)':y='(h-text_h)/2-35+45*cos(t*0.28)':fontsize=26:fontcolor=white@0.26[v_base];\
+              drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='STREAMX LIVE':x='(w-text_w)/2+110*sin(t*0.35)':y='(h-text_h)/2-35+45*cos(t*0.28)':fontsize=26:fontcolor=white@0.26[match_wmark];\
               [2:v]scale=420:84:force_original_aspect_ratio=decrease,pad=420:84:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
-              [v_base][logo_scaled]overlay=x=845:y=20:shortest=1[v];\
+              [match_wmark][logo_scaled]overlay=x=845:y=20:shortest=1,scale=1104:604[tv_screen];\
+              [bg]\
+              drawbox=x=72:y=24:w=1136:h=632:color=#1d2430@0.98:t=fill,\
+              drawbox=x=76:y=28:w=1128:h=624:color=#05070a@1.0:t=fill,\
+              drawbox=x=520:y=656:w=240:h=10:color=#181e28@0.95:t=fill,\
+              drawbox=x=460:y=666:w=360:h=12:color=#222a38@0.95:t=fill,\
+              drawbox=x=1178:y=638:w=10:h=4:color=#38bdf8@0.85:t=fill[tv_frame];\
+              [tv_frame][tv_screen]overlay=x=88:y=38:shortest=1[v];\
               anoisesrc=color=pink:amplitude=0.015:sample_rate=44100[amb_tex];\
               [1:a]adelay=2500|2500,highpass=f=75,lowpass=f=2400,\
               equalizer=f=320:t=q:w=1.5:g=-3,equalizer=f=1450:t=q:w=1.2:g=2.5,\
@@ -248,4 +256,3 @@ jobs:
           FFEOF
 
           bash run_stream.sh
-          
