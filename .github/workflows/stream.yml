@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Wallclock Fix + Audio Sync + Anti-Freeze)
+name: Stream Match to Facebook (New Zealand Vs India)
 
 on:
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
-          const TARGET_URL = 'https://www.streamx.website/match?tv=1&id=tv-1&title=New+Zealand+vs+India';
+          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-1-new-zealand-vs-india&title=New%20Zealand%20Vs%20India';
 
           (async () => {
             const browser = await puppeteer.launch({
