@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Slanted Uneven Split + Logo)
+name: Stream Match to Facebook (New Zealand vs India + Full Filters)
 
 on:
   workflow_dispatch:
@@ -40,12 +40,12 @@ jobs:
           pactl set-default-source virtual_speaker.monitor || true
 
           curl -fsSL "https://raw.githubusercontent.com/yasirurandula84-coder/Live/refs/heads/main/1793782216727.jpg" -o logo.jpg || \
-            ffmpeg -y -f lavfi -i color=c=black:s=500x100:d=1 -frames:v 1 logo.jpg
+            ffmpeg -y -f lavfi -i color=c=black:s=420x84:d=1 -frames:v 1 logo.jpg
 
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
-          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-6-pakistan-a-vs-bangladesh-a&title=Pakistan%20A%20Vs%20Bangladesh%20A';
+          const TARGET_URL = 'https://www.streamx.website/match?tv=1&id=tv-1&title=New+Zealand+vs+India';
 
           (async () => {
             const browser = await puppeteer.launch({
@@ -84,7 +84,7 @@ jobs:
               window.open = function () { return null; };
             });
 
-            console.log('Navigating to stream page...');
+            console.log('Navigating to match stream...');
             try {
               await page.goto(TARGET_URL, {
                 waitUntil: 'domcontentloaded',
@@ -101,7 +101,7 @@ jobs:
                 const info = await frames[i].evaluate(async (frameIdx) => {
                   window.open = function () { return null; };
 
-                  const styleId = 'force-auto-fullscreen-style';
+                  const styleId = 'force-clean-fullscreen-style';
                   if (!document.getElementById(styleId)) {
                     const style = document.createElement('style');
                     style.id = styleId;
@@ -169,7 +169,7 @@ jobs:
           EOF
 
           node launch.js > launch.log 2>&1 &
-          sleep 30
+          sleep 45
           echo "=== LAUNCH.JS LOGS ==="
           cat launch.log || true
           echo "======================"
@@ -180,45 +180,62 @@ jobs:
             ffmpeg -y \
               -fflags +genpts \
               -thread_queue_size 2048 \
-              -f x11grab -framerate 25 -video_size 1280x720 -i :99.0 \
+              -f x11grab -framerate 27 -video_size 1280x720 -i :99.0 \
               -thread_queue_size 2048 \
               -f pulse -i virtual_speaker.monitor \
               -loop 1 -i logo.jpg \
               -filter_complex "\
-              color=c=black:s=1280x720:r=25[bg];\
-              [0:v]scale=1280:720,fps=25,split=2[vorig][vbw];\
-              [vbw]crop=600:85:40:615,hue=s=0[sb_bw];\
-              [vorig][sb_bw]overlay=x=40:y=615:shortest=1[sb_done];\
-              [sb_done]split=4[q0][q1][q2][q3];\
-              [q0]crop=710:330:0:0,hue=h=-35:s=1.22,colorbalance=rs=0.14:gs=-0.08:bs=0.06:rm=0.10:gm=-0.06:bm=0.04[tl];\
-              [q1]crop=570:330:710:0,hue=h=55:s=1.22,colorbalance=rs=-0.10:gs=0.15:bs=-0.05:rm=-0.08:gm=0.10:bm=-0.04[tr];\
-              [q2]crop=550:390:0:330,hue=h=30:s=1.22,colorbalance=rs=0.10:gs=0.08:bs=-0.14:rm=0.08:gm=0.06:bm=-0.10[bl];\
-              [q3]crop=730:390:550:330,hue=h=-85:s=1.22,colorbalance=rs=-0.08:gs=0.04:bs=0.15:rm=-0.06:gm=0.03:bm=0.10[br];\
-              [bg][tl]overlay=x='0+mod(t*14,28)-14':y='0+mod(t*10,20)-10':shortest=1[s1];\
-              [s1][tr]overlay=x='710+mod(t*14,28)-14':y='0+mod(t*10,20)-10':shortest=1[s2];\
-              [s2][bl]overlay=x='0+mod(t*14,28)-14':y='330+mod(t*10,20)-10':shortest=1[s3];\
-              [s3][br]overlay=x='550+mod(t*14,28)-14':y='330+mod(t*10,20)-10':shortest=1[parts_done];\
-              color=c=0x00000000:s=1280x720,format=rgba[lines_base];\
-              [lines_base]drawbox=x=708:y=0:w=4:h=332:color=#00aaff@0.95:t=fill,\
-              drawbox=x=548:y=328:w=4:h=392:color=#00aaff@0.95:t=fill,\
-              drawbox=x=0:y=328:w=712:h=4:color=#00aaff@0.95:t=fill,\
-              drawbox=x=548:y=328:w=732:h=4:color=#00aaff@0.95:t=fill,\
-              perspective=x0=28:y0=0:x1=1252:y1=0:x2=-28:y2=720:x3=1308:y3=720:sense=destination[slanted_lines];\
-              [parts_done]perspective=x0=28:y0=0:x1=1252:y1=0:x2=-28:y2=720:x3=1308:y3=720:sense=destination[slanted_video];\
-              [slanted_video][slanted_lines]overlay=0:0:shortest=1,\
-              hue=h=12:s=1.08:b=0.02,eq=contrast=1.06:brightness=0.01,\
-              drawbox=x=0:y=0:w=1280:h=6:color=white@0.45:t=fill,\
-              drawbox=x=0:y=714:w=1280:h=6:color=white@0.45:t=fill,\
-              drawbox=x=0:y=0:w=6:h=720:color=white@0.45:t=fill,\
-              drawbox=x=1274:y=0:w=6:h=720:color=white@0.45:t=fill,\
-              drawbox=x='if(lt(mod(t*360,4000),1280),mod(t*360,4000),if(lt(mod(t*360,4000),2000),1274,if(lt(mod(t*360,4000),3280),1280-(mod(t*360,4000)-2000),0)))':y='if(lt(mod(t*360,4000),1280),0,if(lt(mod(t*360,4000),2000),(mod(t*360,4000)-1280),if(lt(mod(t*360,4000),3280),714,720-(mod(t*360,4000)-3280))))':w='if(lt(mod(t*360,4000),2000),90,6)':h='if(lt(mod(t*360,4000),2000),6,90)':color=cyan@0.95:t=fill[v_base];\
-              [2:v]scale=500:100:force_original_aspect_ratio=decrease,pad=500:100:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
-              [v_base][logo_scaled]overlay=x=865:y=18:shortest=1[v];\
-              anoisesrc=color=white:amplitude=0.025:sample_rate=44100[bgnoise];\
-              [1:a]highpass=f=80,lowpass=f=2100,bass=g=14:f=100:w=0.9,vibrato=f=4.5:d=0.45,aecho=in_gain=0.9:out_gain=0.95:delays=95|165|240:decays=0.65|0.5|0.35,asetrate=44100*0.72,atempo=1.3888,aresample=44100:async=1:first_pts=0[main_a];\
-              [main_a][bgnoise]amix=inputs=2:weights='1 0.22':duration=shortest,asetpts=PTS-STARTPTS[a]" \
+              color=c=black:s=1280x720:r=27[bg];\
+              [0:v]scale=1320:742,fps=27,\
+              crop=w=1280:h=720:x='20+14*sin(t*0.45)':y='11+10*cos(t*0.38)',\
+              split=2[vtop_raw][vbot_raw];\
+              [vtop_raw]crop=1280:615:0:0,split=2[vleft][vright];\
+              [vleft]crop=640:615:0:0,hue=h=-25:s=1.15,colorbalance=rs=0.12:gs=-0.04:bs=0.08:rm=0.08:gm=-0.02:bm=0.06[left_tinted];\
+              [vright]crop=640:615:640:0,hue=h=35:s=1.15,colorbalance=rs=-0.06:gs=0.10:bs=-0.04:rm=-0.04:gm=0.07:bm=-0.02[right_tinted];\
+              color=c=black:s=1280x615:r=27[top_bg];\
+              [top_bg][left_tinted]overlay=0:0:shortest=1[top_half];\
+              [top_half][right_tinted]overlay=640:0:shortest=1,\
+              perspective=x0=55:y0=0:x1=1225:y1=0:x2=-45:y2=615:x3=1325:y3=615:sense=destination,\
+              scale=1304:627,\
+              rotate='0.0075*sin(t*0.5)':fillcolor=black@0:ow=rotw(0.0075*sin(t*0.5)):oh=roth(0.0075*sin(t*0.5)),\
+              crop=1280:615:(iw-1280)/2:(ih-615)/2[top_tilted];\
+              [vbot_raw]crop=1280:105:0:615[bot_straight];\
+              [bg][bot_straight]overlay=0:615:shortest=1[with_bot];\
+              [with_bot][top_tilted]overlay=0:0:shortest=1,\
+              drawbox=x=0:y=0:w=1280:h=4:color=white@0.22:t=fill,\
+              drawbox=x=0:y=716:w=1280:h=4:color=white@0.22:t=fill,\
+              drawbox=x=0:y=0:w=4:h=720:color=white@0.22:t=fill,\
+              drawbox=x=1276:y=0:w=4:h=720:color=white@0.22:t=fill,\
+              drawbox=x='mod(140+t*45,1260)':y='120+45*sin(t*0.7+0.0)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(210+t*45,1260)':y='155+45*sin(t*0.7+0.4)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(280+t*45,1260)':y='190+45*sin(t*0.7+0.8)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(350+t*45,1260)':y='225+45*sin(t*0.7+1.2)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(420+t*45,1260)':y='260+45*sin(t*0.7+1.6)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(490+t*45,1260)':y='295+45*sin(t*0.7+2.0)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(560+t*45,1260)':y='330+45*sin(t*0.7+2.4)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(630+t*45,1260)':y='365+45*sin(t*0.7+2.8)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(700+t*45,1260)':y='400+45*sin(t*0.7+3.2)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(770+t*45,1260)':y='365+45*sin(t*0.7+3.6)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(840+t*45,1260)':y='330+45*sin(t*0.7+4.0)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(910+t*45,1260)':y='295+45*sin(t*0.7+4.4)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(980+t*45,1260)':y='260+45*sin(t*0.7+4.8)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(1050+t*45,1260)':y='225+45*sin(t*0.7+5.2)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(1120+t*45,1260)':y='190+45*sin(t*0.7+5.6)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(1190+t*45,1260)':y='155+45*sin(t*0.7+6.0)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(1260+t*45,1260)':y='120+45*sin(t*0.7+6.4)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(1330+t*45,1260)':y='155+45*sin(t*0.7+6.8)':w=4:h=4:color=white@0.045:t=fill,\
+              drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='STREAMX LIVE':x='(w-text_w)/2+110*sin(t*0.35)':y='(h-text_h)/2-35+45*cos(t*0.28)':fontsize=26:fontcolor=white@0.26[v_base];\
+              [2:v]scale=420:84:force_original_aspect_ratio=decrease,pad=420:84:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
+              [v_base][logo_scaled]overlay=x=845:y=20:shortest=1[v];\
+              anoisesrc=color=pink:amplitude=0.015:sample_rate=44100[amb_tex];\
+              [1:a]adelay=2500|2500,highpass=f=75,lowpass=f=2400,\
+              equalizer=f=320:t=q:w=1.5:g=-3,equalizer=f=1450:t=q:w=1.2:g=2.5,\
+              bass=g=10:f=110:w=0.8,vibrato=f=3.0:d=0.3,\
+              aecho=in_gain=0.85:out_gain=0.85:delays=100|170:decays=0.5|0.35,\
+              asetrate=44100*0.78,atempo=1.282,aresample=44100:async=1:first_pts=0[main_a];\
+              [main_a][amb_tex]amix=inputs=2:weights='1 0.16':duration=shortest,asetpts=PTS-STARTPTS[a]" \
               -map "[v]" -map "[a]" \
-              -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1600k -maxrate 1900k -bufsize 3600k \
+              -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -g 54 -keyint_min 54 -b:v 1700k -maxrate 2000k -bufsize 3800k \
               -max_muxing_queue_size 4096 \
               -c:a aac -b:a 112k -ar 44100 -ac 2 \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
