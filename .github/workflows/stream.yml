@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (ILT T20 Vs ILT T20)
+name: Stream Match to Facebook (FootfyTV 5928 Smart Fingerprint+)
 
 on:
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
           cat << 'EOF' > launch.js
           const puppeteer = require('puppeteer');
 
-          const TARGET_URL = 'https://www.streamx.website/match?id=cricket-1-ilt-t20-vs-ilt-t20&title=ILT%20T20%20Vs%20ILT%20T20';
+          const TARGET_URL = 'https://footfytv.my/match.php?id=5928';
 
           (async () => {
             const browser = await puppeteer.launch({
@@ -65,9 +65,6 @@ jobs:
             const page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 720 });
 
-            page.on('console', (msg) => {
-              console.log('[PAGE CONSOLE]:', msg.text());
-            });
             page.on('pageerror', (err) => {
               console.log('[PAGE ERROR]:', err.message);
             });
@@ -207,14 +204,9 @@ jobs:
                     frameIdx,
                     picked540,
                     videos: videos.length,
-                    paused: videos.map((v) => v.paused),
-                    currentTimes: videos.map((v) => Number((v.currentTime || 0).toFixed(2))),
-                    readyStates: videos.map((v) => v.readyState),
-                    networkStates: videos.map((v) => v.networkState)
+                    currentTimes: videos.map((v) => Number((v.currentTime || 0).toFixed(2)))
                   };
-                }, i, q540).catch((e) => ({ frameIdx: i, err: e.message }));
-
-                console.log('[PLAYER SYNC]:', JSON.stringify(info));
+                }, i, q540).catch(() => null);
 
                 if (info && info.videos > 0) {
                   anyVideoFound = true;
@@ -265,22 +257,19 @@ jobs:
 
             await new Promise((r) => setTimeout(r, 10000));
             await ensureFullscreenAutoPlayInFrames();
-            setInterval(ensureFullscreenAutoPlayInFrames, 4000);
+            setInterval(ensureFullscreenAutoPlayInFrames, 6000);
 
             await new Promise(() => {});
           })();
           EOF
 
-          node launch.js > launch.log 2>&1 &
+          node launch.js > /dev/null 2>&1 &
           sleep 45
-          echo "=== LAUNCH.JS LOGS ==="
-          cat launch.log || true
-          echo "======================"
 
           cat << 'FFEOF' > run_stream.sh
           #!/usr/bin/env bash
           while true; do
-            ffmpeg -y \
+            ffmpeg -y -loglevel warning \
               -fflags +genpts+igndts \
               -thread_queue_size 4096 \
               -f x11grab -use_wallclock_as_timestamps 1 -framerate 22 -video_size 1280x720 -i :99.0 \
@@ -290,17 +279,17 @@ jobs:
               -filter_complex "\
               color=c=black:s=1280x720:r=22[bg];\
               [0:v]scale=1320:742,fps=22,\
-              crop=w=1280:h=720:x='20+14*sin(t*0.45)':y='11+10*cos(t*0.38)',\
+              crop=w=1280:h=720:x='20+16*sin(t*0.41+0.7*sin(t*0.025)+0.3*cos(t*0.013))':y='11+11*cos(t*0.36+0.6*cos(t*0.028)+0.3*sin(t*0.015))',\
               split=2[vtop_raw][vbot_raw];\
               [vtop_raw]crop=1280:615:0:0,split=2[vleft][vright];\
-              [vleft]crop=640:615:0:0,hue=h=-25:s=1.15,colorbalance=rs=0.12:gs=-0.04:bs=0.08:rm=0.08:gm=-0.02:bm=0.06[left_tinted];\
-              [vright]crop=640:615:640:0,hue=h=35:s=1.15,colorbalance=rs=-0.06:gs=0.10:bs=-0.04:rm=-0.04:gm=0.07:bm=-0.02[right_tinted];\
+              [vleft]crop=640:615:0:0,hue=h='-25+8*sin(t*0.07+0.5*cos(t*0.019))':s='1.15+0.04*sin(t*0.05)',colorbalance=rs=0.12:gs=-0.04:bs=0.08:rm=0.08:gm=-0.02:bm=0.06[left_tinted];\
+              [vright]crop=640:615:640:0,hue=h='35+8*cos(t*0.06+0.5*sin(t*0.017))':s='1.15+0.04*cos(t*0.045)',colorbalance=rs=-0.06:gs=0.10:bs=-0.04:rm=-0.04:gm=0.07:bm=-0.02[right_tinted];\
               color=c=black:s=1280x615:r=22[top_bg];\
               [top_bg][left_tinted]overlay=0:0:shortest=1[top_half];\
               [top_half][right_tinted]overlay=640:0:shortest=1,\
               perspective=x0=55:y0=0:x1=1225:y1=0:x2=-45:y2=615:x3=1325:y3=615:sense=destination,\
               scale=1304:627,\
-              rotate='0.0075*sin(t*0.5)':fillcolor=black@0:ow=1304:oh=627,\
+              rotate='0.009*sin(t*0.47+0.35*cos(t*0.025))':fillcolor=black@0:ow=1304:oh=627,\
               crop=1280:615:(iw-1280)/2:(ih-615)/2[top_tilted];\
               [vbot_raw]crop=1280:105:0:615[bot_straight];\
               [bg][bot_straight]overlay=0:615:shortest=1[with_bot];\
@@ -315,18 +304,18 @@ jobs:
               drawbox=x='mod(650+t*45,1260)':y='330+45*sin(t*0.7+3.3)':w=4:h=4:color=white@0.045:t=fill,\
               drawbox=x='mod(820+t*45,1260)':y='260+45*sin(t*0.7+4.4)':w=4:h=4:color=white@0.045:t=fill,\
               drawbox=x='mod(990+t*45,1260)':y='190+45*sin(t*0.7+5.5)':w=4:h=4:color=white@0.045:t=fill,\
-              drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='STREAMX LIVE':x='(w-text_w)/2+110*sin(t*0.35)':y='(h-text_h)/2-35+45*cos(t*0.28)':fontsize=26:fontcolor=white@0.26[v_base];\
+              drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='STREAMX LIVE':x='(w-text_w)/2+135*sin(t*0.27+0.5*cos(t*0.02))':y='(h-text_h)/2-35+58*cos(t*0.22+0.5*sin(t*0.02))':fontsize=26:fontcolor='white@0.27'[v_base];\
               [2:v]scale=420:84:force_original_aspect_ratio=decrease,pad=420:84:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
               [v_base][logo_scaled]overlay=x=890:y=20:shortest=1[v];\
               anoisesrc=color=pink:amplitude=0.015:sample_rate=44100[amb_tex];\
-              [1:a]adelay=2500|2500,highpass=f=75,lowpass=f=2400,\
+              [1:a]adelay=4500|4500,highpass=f=75,lowpass=f=2400,\
               equalizer=f=320:t=q:w=1.5:g=-3,equalizer=f=1450:t=q:w=1.2:g=2.5,\
               bass=g=10:f=110:w=0.8,vibrato=f=3.0:d=0.3,\
               aecho=in_gain=0.85:out_gain=0.85:delays=100|170:decays=0.5|0.35,\
-              asetrate=44100*0.78,atempo=1.282,aresample=44100:async=1000:first_pts=0[main_a];\
+              asetrate=44100*0.76,atempo=1.3158,aresample=44100:async=1000:first_pts=0[main_a];\
               [main_a][amb_tex]amix=inputs=2:weights='1 0.16':duration=shortest:dropout_transition=3,asetpts=PTS-STARTPTS[a]" \
               -map "[v]" -map "[a]" \
-              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 44 -keyint_min 44 -b:v 1350k -maxrate 1550k -bufsize 3000k \
+              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 44 -keyint_min 44 -b:v 1400k -maxrate 1600k -bufsize 3200k \
               -max_muxing_queue_size 8192 \
               -c:a aac -b:a 112k -ar 44100 -ac 2 \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
