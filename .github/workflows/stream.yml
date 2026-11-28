@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (LED TV Screen Layout + Full Filters)
+name: Stream Match to Facebook (LED TV Screen Layout + Rotate Fix)
 
 on:
   workflow_dispatch:
@@ -197,7 +197,7 @@ jobs:
               [top_half][right_tinted]overlay=640:0:shortest=1,\
               perspective=x0=55:y0=0:x1=1225:y1=0:x2=-45:y2=615:x3=1325:y3=615:sense=destination,\
               scale=1304:627,\
-              rotate='0.0075*sin(t*0.5)':fillcolor=black@0:ow=rotw(0.0075*sin(t*0.5)):oh=roth(0.0075*sin(t*0.5)),\
+              rotate='0.0075*sin(t*0.5)':fillcolor=black@0:ow=1304:oh=627,\
               crop=1280:615:(iw-1280)/2:(ih-615)/2[top_tilted];\
               [vbot_raw]crop=1280:105:0:615[bot_straight];\
               color=c=black:s=1280x720:r=27[match_canvas];\
