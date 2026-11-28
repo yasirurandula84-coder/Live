@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (New Zealand Vs India)
+name: Stream Match to Facebook (Reduced Lag + Smooth CPU)
 
 on:
   workflow_dispatch:
@@ -85,8 +85,11 @@ jobs:
               window.open = function () { return null; };
             });
 
+            let tried540Once = false;
+
             async function loadMatchPage() {
               console.log('Navigating to match stream...');
+              tried540Once = false;
               try {
                 await page.goto(TARGET_URL, {
                   waitUntil: 'domcontentloaded',
@@ -117,7 +120,7 @@ jobs:
                 }
 
                 const candidates = Array.from(
-                  document.querySelectorAll('button, [role="menuitem"], [role="option"], li, div, span, a')
+                  document.querySelectorAll('button, [role="menuitem"], [role="option"], li')
                 );
                 for (const el of candidates) {
                   const ownText = (el.textContent || '').trim().toLowerCase();
@@ -142,7 +145,10 @@ jobs:
               let maxCurrentTime = -1;
 
               for (let i = 0; i < frames.length; i++) {
-                const q540 = await select540pIfAvailable(frames[i]);
+                let q540 = false;
+                if (!tried540Once) {
+                  q540 = await select540pIfAvailable(frames[i]);
+                }
 
                 const info = await frames[i].evaluate(async (frameIdx, picked540) => {
                   window.open = function () { return null; };
@@ -218,6 +224,10 @@ jobs:
                 }
               }
 
+              if (anyVideoFound) {
+                tried540Once = true;
+              }
+
               if (anyVideoFound && maxCurrentTime >= 0) {
                 if (Math.abs(maxCurrentTime - lastProgressTime) < 0.05) {
                   stuckTicks += 1;
@@ -244,7 +254,7 @@ jobs:
                       });
                     }).catch(() => {});
                   }
-                } else if (stuckTicks >= 4) {
+                } else if (stuckTicks >= 5) {
                   console.log('[WATCHDOG]: Match video frozen too long, reloading page...');
                   stuckTicks = 0;
                   lastProgressTime = -1;
@@ -255,7 +265,7 @@ jobs:
 
             await new Promise((r) => setTimeout(r, 10000));
             await ensureFullscreenAutoPlayInFrames();
-            setInterval(ensureFullscreenAutoPlayInFrames, 3500);
+            setInterval(ensureFullscreenAutoPlayInFrames, 4000);
 
             await new Promise(() => {});
           })();
@@ -273,19 +283,19 @@ jobs:
             ffmpeg -y \
               -fflags +genpts+igndts \
               -thread_queue_size 4096 \
-              -f x11grab -use_wallclock_as_timestamps 1 -framerate 25 -video_size 1280x720 -i :99.0 \
+              -f x11grab -use_wallclock_as_timestamps 1 -framerate 22 -video_size 1280x720 -i :99.0 \
               -thread_queue_size 4096 \
               -f pulse -i virtual_speaker.monitor \
               -loop 1 -i logo.jpg \
               -filter_complex "\
-              color=c=black:s=1280x720:r=25[bg];\
-              [0:v]scale=1320:742,fps=25,\
+              color=c=black:s=1280x720:r=22[bg];\
+              [0:v]scale=1320:742,fps=22,\
               crop=w=1280:h=720:x='20+14*sin(t*0.45)':y='11+10*cos(t*0.38)',\
               split=2[vtop_raw][vbot_raw];\
               [vtop_raw]crop=1280:615:0:0,split=2[vleft][vright];\
               [vleft]crop=640:615:0:0,hue=h=-25:s=1.15,colorbalance=rs=0.12:gs=-0.04:bs=0.08:rm=0.08:gm=-0.02:bm=0.06[left_tinted];\
               [vright]crop=640:615:640:0,hue=h=35:s=1.15,colorbalance=rs=-0.06:gs=0.10:bs=-0.04:rm=-0.04:gm=0.07:bm=-0.02[right_tinted];\
-              color=c=black:s=1280x615:r=25[top_bg];\
+              color=c=black:s=1280x615:r=22[top_bg];\
               [top_bg][left_tinted]overlay=0:0:shortest=1[top_half];\
               [top_half][right_tinted]overlay=640:0:shortest=1,\
               perspective=x0=55:y0=0:x1=1225:y1=0:x2=-45:y2=615:x3=1325:y3=615:sense=destination,\
@@ -300,23 +310,11 @@ jobs:
               drawbox=x=0:y=0:w=4:h=720:color=white@0.22:t=fill,\
               drawbox=x=1276:y=0:w=4:h=720:color=white@0.22:t=fill,\
               drawbox=x='mod(140+t*45,1260)':y='120+45*sin(t*0.7+0.0)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(210+t*45,1260)':y='155+45*sin(t*0.7+0.4)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(280+t*45,1260)':y='190+45*sin(t*0.7+0.8)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(350+t*45,1260)':y='225+45*sin(t*0.7+1.2)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(420+t*45,1260)':y='260+45*sin(t*0.7+1.6)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(490+t*45,1260)':y='295+45*sin(t*0.7+2.0)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(560+t*45,1260)':y='330+45*sin(t*0.7+2.4)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(630+t*45,1260)':y='365+45*sin(t*0.7+2.8)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(700+t*45,1260)':y='400+45*sin(t*0.7+3.2)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(770+t*45,1260)':y='365+45*sin(t*0.7+3.6)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(840+t*45,1260)':y='330+45*sin(t*0.7+4.0)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(910+t*45,1260)':y='295+45*sin(t*0.7+4.4)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(980+t*45,1260)':y='260+45*sin(t*0.7+4.8)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(1050+t*45,1260)':y='225+45*sin(t*0.7+5.2)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(1120+t*45,1260)':y='190+45*sin(t*0.7+5.6)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(1190+t*45,1260)':y='155+45*sin(t*0.7+6.0)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(1260+t*45,1260)':y='120+45*sin(t*0.7+6.4)':w=4:h=4:color=white@0.045:t=fill,\
-              drawbox=x='mod(1330+t*45,1260)':y='155+45*sin(t*0.7+6.8)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(310+t*45,1260)':y='190+45*sin(t*0.7+1.1)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(480+t*45,1260)':y='260+45*sin(t*0.7+2.2)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(650+t*45,1260)':y='330+45*sin(t*0.7+3.3)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(820+t*45,1260)':y='260+45*sin(t*0.7+4.4)':w=4:h=4:color=white@0.045:t=fill,\
+              drawbox=x='mod(990+t*45,1260)':y='190+45*sin(t*0.7+5.5)':w=4:h=4:color=white@0.045:t=fill,\
               drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='STREAMX LIVE':x='(w-text_w)/2+110*sin(t*0.35)':y='(h-text_h)/2-35+45*cos(t*0.28)':fontsize=26:fontcolor=white@0.26[v_base];\
               [2:v]scale=420:84:force_original_aspect_ratio=decrease,pad=420:84:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
               [v_base][logo_scaled]overlay=x=890:y=20:shortest=1[v];\
@@ -328,7 +326,7 @@ jobs:
               asetrate=44100*0.78,atempo=1.282,aresample=44100:async=1000:first_pts=0[main_a];\
               [main_a][amb_tex]amix=inputs=2:weights='1 0.16':duration=shortest:dropout_transition=3,asetpts=PTS-STARTPTS[a]" \
               -map "[v]" -map "[a]" \
-              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 50 -keyint_min 50 -b:v 1350k -maxrate 1550k -bufsize 3000k \
+              -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 44 -keyint_min 44 -b:v 1350k -maxrate 1550k -bufsize 3000k \
               -max_muxing_queue_size 8192 \
               -c:a aac -b:a 112k -ar 44100 -ac 2 \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
