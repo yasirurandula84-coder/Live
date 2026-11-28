@@ -1,4 +1,4 @@
-name: Stream Match to Facebook (Logo Shifted Right + Full Filters)
+name: Stream Match to Facebook (Logo Right Edge + 540p Quality + Full Filters)
 
 on:
   workflow_dispatch:
@@ -96,10 +96,47 @@ jobs:
               console.log('Navigation error:', e.message);
             }
 
+            async function select540pIfAvailable(frame) {
+              return frame.evaluate(() => {
+                let selected540p = false;
+
+                // 1. Check <select> elements for 540p / 540
+                const selects = Array.from(document.querySelectorAll('select'));
+                for (const sel of selects) {
+                  for (const opt of Array.from(sel.options)) {
+                    const txt = ((opt.textContent || '') + ' ' + (opt.value || '')).toLowerCase();
+                    if (txt.includes('540p') || txt.includes('540')) {
+                      sel.value = opt.value;
+                      sel.dispatchEvent(new Event('change', { bubbles: true }));
+                      selected540p = true;
+                    }
+                  }
+                }
+
+                // 2. Check clickable buttons/items/menu options mentioning 540p
+                const candidates = Array.from(
+                  document.querySelectorAll('button, [role="menuitem"], [role="option"], li, div, span, a')
+                );
+                for (const el of candidates) {
+                  const ownText = (el.textContent || '').trim().toLowerCase();
+                  if (ownText === '540p' || ownText === '540') {
+                    try {
+                      el.click();
+                      selected540p = true;
+                    } catch (e) {}
+                  }
+                }
+
+                return selected540p;
+              }).catch(() => false);
+            }
+
             async function ensureFullscreenAutoPlayInFrames() {
               const frames = page.frames();
               for (let i = 0; i < frames.length; i++) {
-                const info = await frames[i].evaluate(async (frameIdx) => {
+                const q540 = await select540pIfAvailable(frames[i]);
+
+                const info = await frames[i].evaluate(async (frameIdx, picked540) => {
                   window.open = function () { return null; };
 
                   const styleId = 'force-clean-fullscreen-style';
@@ -152,11 +189,12 @@ jobs:
 
                   return {
                     frameIdx,
+                    picked540,
                     videos: videos.length,
                     paused: videos.map((v) => v.paused),
                     readyStates: videos.map((v) => v.readyState)
                   };
-                }, i).catch((e) => ({ frameIdx: i, err: e.message }));
+                }, i, q540).catch((e) => ({ frameIdx: i, err: e.message }));
                 console.log('[PLAYER SYNC]:', JSON.stringify(info));
               }
             }
@@ -227,7 +265,7 @@ jobs:
               drawbox=x='mod(1330+t*45,1260)':y='155+45*sin(t*0.7+6.8)':w=4:h=4:color=white@0.045:t=fill,\
               drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='STREAMX LIVE':x='(w-text_w)/2+110*sin(t*0.35)':y='(h-text_h)/2-35+45*cos(t*0.28)':fontsize=26:fontcolor=white@0.26[v_base];\
               [2:v]scale=420:84:force_original_aspect_ratio=decrease,pad=420:84:(ow-iw)/2:(oh-ih)/2:color=black@0.0,format=rgba[logo_scaled];\
-              [v_base][logo_scaled]overlay=x=856:y=20:shortest=1[v];\
+              [v_base][logo_scaled]overlay=x=860:y=20:shortest=1[v];\
               anoisesrc=color=pink:amplitude=0.015:sample_rate=44100[amb_tex];\
               [1:a]adelay=2500|2500,highpass=f=75,lowpass=f=2400,\
               equalizer=f=320:t=q:w=1.5:g=-3,equalizer=f=1450:t=q:w=1.2:g=2.5,\
